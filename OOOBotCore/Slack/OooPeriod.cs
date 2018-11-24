@@ -92,7 +92,7 @@ namespace OOOBotCore
 			return Periods.Find(p => p.Id == id);
 		}
 
-		static List<OooPeriod> GetByUserId(string userId)
+		public static List<OooPeriod> GetByUserId(string userId)
 		{
 			return Periods.FindAll(p => p.UserId == userId);
 		}

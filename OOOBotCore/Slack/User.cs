@@ -7,18 +7,7 @@ namespace OOOBotCore
 {
     public class User : IEquatable<User>
     {
-        public virtual bool IsOoo
-        {
-            get
-            {
-                if (UserOooPeriods.Any())
-                {
-	                return UserOooPeriods.Where(p => p.StartTime <= DateTime.UtcNow)
-		                .Any(currentperiod => currentperiod.StartTime + currentperiod.OooLength <= DateTime.UtcNow);
-                }
-                return false;
-            }
-        }
+	    public bool IsOoo => OooPeriods.GetByUserId(UserId).Any(p => p.IsCurrentlyActive);
         public string UserId { get; }
         public string UserName { get; set; }
 

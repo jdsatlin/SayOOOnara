@@ -84,23 +84,23 @@ namespace OOOBotCore
 		    switch (commands.Count)
 		    {
 
-				case 1: UserOooPeriod = new OooPeriod((string) TODO, startTime);
+				case 1: UserOooPeriod = new OooPeriod(UserId, startTime);
 					break;
 			    case 2:
 			    {
 				    var endTime = DateTime.MaxValue;
 				    endTime = parser.Parse(commands[1])?.ToTime() ?? endTime;
-				    UserOooPeriod = new OooPeriod(TODO, startTime, endTime);
+				    UserOooPeriod = new OooPeriod(UserId, startTime, endTime);
 				    break;
 			    }
 			    case 3:
 			    {
 				    var endTime = DateTime.MaxValue;
 				    endTime = parser.Parse(commands[1])?.ToTime() ?? endTime;
-				    UserOooPeriod = new OooPeriod(TODO, startTime, endTime, commands[2]);
+				    UserOooPeriod = new OooPeriod(UserId, startTime, endTime, commands[2]);
 				    break;
 			    }
-				default: UserOooPeriod = new OooPeriod((string) TODO, DateTime.Now);
+				default: UserOooPeriod = new OooPeriod(UserId, DateTime.Now);
 					break;
 			}
 	    }
