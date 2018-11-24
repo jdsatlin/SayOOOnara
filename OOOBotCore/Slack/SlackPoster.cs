@@ -48,7 +48,6 @@ namespace OOOBotCore
 
     public class SlashOooHandler : SlashCommandReader
     {
-	    private string PostBody { get; set; }
 	    private User OooUser { get; set; }
 	    private OooPeriod UserOooPeriod { get; set; }
 
