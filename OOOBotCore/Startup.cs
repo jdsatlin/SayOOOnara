@@ -46,13 +46,19 @@ namespace OOOBotCore
 
             app.UseMvc(routes =>
             {
-                routes.MapRoute(
-                    name: "default",
-                    template: "{controller=Home}/{action=Index}/{id?}");
+                //routes.MapRoute(
+                //    name: "default",
+                //    template: "{controller=Home}/{action=Index}/{id?}");
 
-                routes.MapSpaFallbackRoute(
-                    name: "spa-fallback",
-                    defaults: new { controller = "Home", action = "Index" });
+	            routes.MapRoute(
+		            name: "ooo",
+		            template: "{controller=SlackController}/{action=SlashOoo}");
+
+                //routes.MapSpaFallbackRoute(
+                //    name: "spa-fallback",
+                //    defaults: new { controller = "Home", action = "Index" });
+
+			
             });
         }
     }
