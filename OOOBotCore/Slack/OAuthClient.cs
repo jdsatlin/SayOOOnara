@@ -11,8 +11,7 @@ namespace OOOBotCore
         private const string oAuthAddress = "https://slack.com/oauth/authorize";
         private const string oAuthAccessAddress = "https://slack.com/api/oauth.access";
         private string _authToken;
-        private  IOptions _options;
-        private string siteAddress;
+        private readonly IOptions _options;
 
 	    public OAuthClient()
 	    {
@@ -42,7 +41,7 @@ namespace OOOBotCore
         public async Task<string> InitialOAuthRequest()
         {
             string accessCode = "";
-            var url = new Uri(oAuthAddress + "?scope=" + SetScope() + "&client_id=" + ClientId + "&redirect_uri=" + siteAddress);
+            var url = new Uri(oAuthAddress + "?scope=" + SetScope() + "&client_id=" + ClientId + "&redirect_uri=" + oAuthAddress);
             HttpResponseMessage response = await GetAsync(url);
             if (response.IsSuccessStatusCode)
             {
