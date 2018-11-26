@@ -52,7 +52,7 @@ namespace OOOBotCore
 
 	            routes.MapRoute(
 		            name: "ooo",
-		            template: "{controller=SlackController}/{action=SlashOoo}");
+		            template: "{controller=OooController}/{action=SlashOoo}");
 
                 //routes.MapSpaFallbackRoute(
                 //    name: "spa-fallback",

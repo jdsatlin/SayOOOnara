@@ -14,8 +14,11 @@ namespace OOOBotCore
         private  IOptions _options;
         private string siteAddress;
 
-
-        private string AuthToken
+	    public OAuthClient()
+	    {
+		    _options = new OptionsFile();
+	    }
+        public string AuthToken
         {
             get
             {
@@ -30,7 +33,7 @@ namespace OOOBotCore
 
                 return _authToken;
             }
-            set => _authToken = value;
+           private set => _authToken = value;
         }
 
         private string ClientId => _options.GetClientId();

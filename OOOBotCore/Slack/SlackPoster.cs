@@ -1,35 +1,47 @@
 using System;
-using System.Collections.Generic;
+using System.Globalization;
 using System.IdentityModel.Tokens.Jwt;
-using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Net.Security;
 using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
-using System.Web;
-using Chronic.Core;
+using System.Timers;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Internal;
 using Microsoft.AspNetCore.Razor.Language.Intermediate;
 using Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Http;
+using Microsoft.Rest;
 using Newtonsoft.Json;
 
 namespace OOOBotCore
 {
-	public class SlackClient
+	public class SlackClient : HttpClient
 	{
-	    const string address = "www.slack.com";
-
 	    private readonly OAuthClient _oAuthClient;
+		private string _authToken => _oAuthClient.AuthToken;
+		private const string PostMessageUrl = "https://slack.com/api/chat.postMessage";
+		private static IOptions _options;
 
-	    public SlackClient()
+
+
+		public SlackClient()
 	    {
 	        _oAuthClient = new OAuthClient();
+			DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _authToken);
+			_options = new OptionsFile();
+		    AuthTest();
+
+
+
 	    }
 
-	    private enum MimeType
+		private enum MimeType
 		{
 			Json
 		,UrlEncoded
@@ -44,142 +56,122 @@ namespace OOOBotCore
 				default: return "text/plain";
 			}
 		}
-	}
 
-    public class SlashOooHandler : SlashCommandReader
-    {
-	    private User OooUser { get; set; }
-	    private OooPeriod UserOooPeriod { get; set; }
-
-		protected override async Task ReadCommand()
-        {
-	        await base.ReadCommand();
-
-			OooUser = Users.FindOrCreateUser(UserId);
-	        OooUser.UserName = UserName;
-	        await interpretCommandText(CommandText);
-        }
-
-	    protected override async Task<object> CreateResponse()
-	    {
-		    return new {text = UserOooPeriod.OooPeriodSummary()};
-	    }
-
-	    private async Task interpretCommandText(string commandText)
-	    { 
-		    List<string> commands = new List<string>();
-		    DateTime startTime = DateTime.Now;
-			var parser = new Parser();
-		    if (commandText.Length > 0)
-		    {
-			    commandText = RemoveDoubleSpaces(commandText);
-			    var spaceCount = commandText.ToCharArray().Count(c => c == ' ');
-			    spaceCount = spaceCount > 3 ? 3 : spaceCount;
-			    commands = commandText.Split(' ', spaceCount).ToList();
-
-			    startTime = parser.Parse(commands[0])?.ToTime() ?? startTime;
-		    }
-
-		    switch (commands.Count)
-		    {
-
-				case 1: UserOooPeriod = new OooPeriod(UserId, startTime);
-					break;
-			    case 2:
-			    {
-				    var endTime = DateTime.MaxValue;
-				    endTime = parser.Parse(commands[1])?.ToTime() ?? endTime;
-				    UserOooPeriod = new OooPeriod(UserId, startTime, endTime);
-				    break;
-			    }
-			    case 3:
-			    {
-				    var endTime = DateTime.MaxValue;
-				    endTime = parser.Parse(commands[1])?.ToTime() ?? endTime;
-				    UserOooPeriod = new OooPeriod(UserId, startTime, endTime, commands[2]);
-				    break;
-			    }
-				default: UserOooPeriod = new OooPeriod(UserId, DateTime.Now);
-					break;
-			}
-	    }
-
-	   
-
-	    private string RemoveDoubleSpaces(string text)
-	    {
-		    while (true)
-		    {
-			    if (!text.Contains("  ")) return text;
-			    text = text.Replace("  ", " ");
-		    }
-	    }
-
-	}
-
-	public class SlashReturnHandler : SlashCommandReader
-	{
-		private User OooUser { get; set; }
-	
-
-
-	}
-
-	public class SlashCommandReader
-	{
-		protected string UserId { get; set; }
-		protected string UserName { get; set; }
-		protected string CommandText { get; set; }
-		protected Uri ResponseUri { get; set; }
-		protected string PostBody { get; set; }
-
-		public virtual async Task<object> HandleRequest(string postBody)
+		private async void AuthTest()
 		{
-			PostBody = postBody;
-			await ReadCommand();
-			return await CreateResponse();
+			var body = new StringContent(JsonConvert.SerializeObject(""));
+			body.Headers.ContentType = MediaTypeHeaderValue.Parse(getMediaType(MimeType.Json));
+			Console.WriteLine(body.AsString());
+			var response = await PostAsync(new Uri("https://slack.com/api/auth.test"), body);
+			Console.WriteLine(response.AsFormattedString());
+
+
 		}
 
-		protected virtual async Task ReadCommand()
+		public async void PostBroadcast()
 		{
-			var bodyNameValueCollection = HttpUtility.ParseQueryString(PostBody);
-			Dictionary<string, string> messageBody = bodyNameValueCollection.Keys.Cast<string>()
-				.ToDictionary(k => k, v => bodyNameValueCollection[v]);
+			string message = await BuildBroadcastMessage();
+			var channel = _options.GetBroadcastChannel();
+			var json = new {channel = channel, text = message};
+			var requestBody = new StringContent(JsonConvert.SerializeObject(json));
+			Console.WriteLine(requestBody.AsString());
+			
+			requestBody.Headers.ContentType = MediaTypeHeaderValue.Parse(getMediaType(MimeType.Json));
+			var response = await PostAsync(PostMessageUrl, requestBody);
+			Console.WriteLine(response.StatusCode);
+			Console.WriteLine(response.AsFormattedString());
 
+		}
 
-			foreach (var parameter in messageBody)
+		private async Task<string> BuildBroadcastMessage()
+		{
+			var activeOooPeriods = OooPeriods.GetAllActive();
+			bool usersAreOoo = activeOooPeriods.Count > 0;
+			var baseMessage =
+				$"Today is {DateTime.Now.ToShortDateString()} \n"
+				+ $"{(usersAreOoo ? "The following users are out of office today:\n" : "No one is out of office today.")}";
+			StringBuilder sb = new StringBuilder();
+			string oooUserMessages = string.Empty;
+			if (usersAreOoo)
 			{
-				switch (parameter.Key)
+				for (var i = 0; i <activeOooPeriods.Count; i++)
 				{
-					case "user_id":
-						if (!parameter.Value.StartsWith('U'))
-						{
-							throw new ApplicationException(string.Format(
-								$"UserId is in an invalid format. UserID must be in format U###... UserID was {0}",
-								parameter.Value));
-						}
+					var period = activeOooPeriods[i];
+					var userName = Users.FindOrCreateUser(period.UserId).UserName;
+					var startTime = period.StartTime.ToLocalTime();
+					var startTimeText = "From: "
+					                    + (startTime.Hour == 0
+						                    ? startTime.ToShortDateString()
+						                    : startTime.ToString("g", CultureInfo.CurrentCulture));
+					var endTime = period.EndTime.ToLocalTime();
+					var endTimeText = "To: "
+					                  + (endTime.Hour == 0
+						                  ? endTime.ToShortDateString()
+						                  : endTime.ToString("g", CultureInfo.CurrentCulture));
+					var userMessageText = $"Their message is: {period.Message}";
+					if (i < activeOooPeriods.Count - 1)
+					{
+						sb.AppendLine(userName + " " + startTimeText + " " + endTimeText + " " + userMessageText);
+					}
+					else
+					{
+						sb.Append(userName + " " + startTimeText + " " + endTimeText + " " + userMessageText);
+					}
 
-						UserId = parameter.Value;
-						break;
-					case "user_name":
-						UserName = parameter.Value;
-						break;
-					case "text":
-						CommandText = parameter.Value;
-						break;
-					case "response_url":
-						ResponseUri = new Uri(parameter.Value);
-						break;
 				}
+				oooUserMessages = sb.ToString();
 			}
+
+			return baseMessage + oooUserMessages;
 		}
 
-
-		protected virtual async Task<object> CreateResponse()
-		{
-			return new {};
-		}
+		
 	}
 
+	public class MessageScheduler
+	{
+		private Timer Timer;
+		private DateTime _timeOfDay;
+		private DateTime TimeOfDay
+		{
+			get
+			{
+				_timeOfDay = UpdateToNextOccurence(_timeOfDay);
+				return _timeOfDay;
+			}
+			set => _timeOfDay = value;
+		}
 
+		private double MillisecondsAway => (TimeOfDay - DateTime.Now).TotalMilliseconds;
+
+		public MessageScheduler(DateTime timeOfDay)
+		{
+			TimeOfDay = UpdateToNextOccurence(timeOfDay);
+			Timer =  new Timer(MillisecondsAway);
+			Timer.Elapsed += TimerOnElapsed;
+			Timer.AutoReset = true;
+			Timer.Enabled = true;
+
+		}
+
+		private void TimerOnElapsed(object sender, ElapsedEventArgs e)
+		{
+			var poster = new SlackClient();
+			poster.PostBroadcast();
+			TimeOfDay = UpdateToNextOccurence(TimeOfDay);
+			Timer.Interval = MillisecondsAway;
+		}
+
+		private static DateTime UpdateToNextOccurence(DateTime input)
+		{
+			if (input > DateTime.Now)
+			{
+				return input;
+			}
+
+			var gap = DateTime.Now.Date - input.Date;
+			return input.AddDays(gap.Days + 1);
+		}
+
+	}
 }

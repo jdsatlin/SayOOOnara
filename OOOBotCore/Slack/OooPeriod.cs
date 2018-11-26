@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
+using Chronic.Core.System;
 
 namespace OOOBotCore
 {
@@ -52,7 +54,7 @@ namespace OOOBotCore
 			OooLength = oooSpan;
 			Message = message;
 
-			OooPeriods.Periods.Add(this);
+			OooPeriods.Periods.Add(this.Id, this);
 		}
 
 		public string OooPeriodSummary()
@@ -63,8 +65,8 @@ namespace OOOBotCore
 			bool periodInEffect = startTime <= DateTime.Now && endTime >= DateTime.Now;
 
 			return $"You {(periodInEffect ? "have been" : "will be")} marked Out of Office beginning" +
-			       $" {(startTime.Date == DateTime.Today.Date ? "now" : StartTime.ToShortDateString())}" +
-			       $" {(endTime == DateTime.MaxValue ? "with no return date set." : "and returning " + endTime.ToShortDateString())}.\n" +
+			       $" {(startTime.Date == DateTime.Today ? startTime.ToString("t", CultureInfo.CurrentCulture) : StartTime.Hour == 0 ? StartTime.ToShortDateString() : StartTime.ToString("g", CultureInfo.CurrentCulture))}" +
+			       $" {(endTime == DateTime.MaxValue ? "with no return date set." : "and returning " + (endTime.Hour == 0 ? endTime.ToShortDateString() : endTime.ToString("g", CultureInfo.CurrentCulture)))}.\n" +
 			       $" You{(string.IsNullOrWhiteSpace(message) ? " do not have an an out of office message." : "r out of office message is: " + message)}";
 		}
 
@@ -73,28 +75,47 @@ namespace OOOBotCore
 
 	public static class OooPeriods
 	{
-		private static readonly List<OooPeriod> _oooPeriods = new List<OooPeriod>();
-		public static List<OooPeriod> Periods
+		private static readonly Dictionary<int, OooPeriod> _oooPeriods = new Dictionary<int, OooPeriod>();
+		public static Dictionary<int, OooPeriod> Periods
 		{
 			get
 			{
-				HistoricalOooPeriods.AddRange(_oooPeriods.Where(p => p.EndTime < DateTime.UtcNow));
-				_oooPeriods.RemoveAll(p => p.EndTime < DateTime.UtcNow);
+				var periodsToRemove = _oooPeriods.Where(p => p.Value.EndTime < DateTime.UtcNow).ToList();
+				periodsToRemove.ForEach(p => HistoricalOooPeriods[p.Key] = p.Value);
+				periodsToRemove.ForEach(p => _oooPeriods.Remove(p.Key));
 
 				return _oooPeriods;
 			}
 		}
 
-		private static List<OooPeriod> HistoricalOooPeriods { get; } = new List<OooPeriod>();
+		private static Dictionary<int, OooPeriod> HistoricalOooPeriods { get; } = new Dictionary<int, OooPeriod>();
 
 		static OooPeriod GetById(int id)
 		{
-			return Periods.Find(p => p.Id == id);
+			return Periods[id];
 		}
 
 		public static List<OooPeriod> GetByUserId(string userId)
 		{
-			return Periods.FindAll(p => p.UserId == userId);
+			return Periods.Values.Where(p => p.UserId == userId).ToList();
+		}
+
+		public static void RemoveOooPeriodByPeriodId(int periodId)
+		{
+			var period = Periods[periodId];
+			if (period.IsCurrentlyActive)
+			{
+				HistoricalOooPeriods.Add(period.Id, period);
+			}
+
+			Periods.Remove(periodId);
+		}
+
+		public static List<OooPeriod> GetAllActive()
+		{
+			var activePeriods = new List<OooPeriod>();
+			Periods.Where(p => p.Value.IsCurrentlyActive).ForEach(p => activePeriods.Add(p.Value));
+			return activePeriods;
 		}
 	}
 }

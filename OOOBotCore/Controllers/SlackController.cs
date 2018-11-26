@@ -15,10 +15,9 @@ using Newtonsoft.Json;
 namespace OOOBotCore.Controllers
 {
     [Produces("application/json")]
-    [Route("ooo")]
-    public class SlackController : Controller
+    public class OooController : Controller
     {
-	    public SlackController()
+	    public OooController()
 	    {
 		
 	    }
@@ -35,12 +34,28 @@ namespace OOOBotCore.Controllers
 			    body = reader.ReadToEnd();
 		    }
 
-			
 		    var handler = new SlashOooHandler();
 		    var result = Json(handler.HandleRequest(body).Result);
 		    result.StatusCode = 200;
 		    return result;
 
 	    }
-    }
+		[HttpPost]
+		[Produces("application/json")]
+		public JsonResult Return()
+		{
+			Request.EnableRewind();
+			Request.Body.Position = 0;
+			string body;
+			using (StreamReader reader = new StreamReader(Request.Body, Encoding.UTF8))
+			{
+				body = reader.ReadToEnd();
+			}
+			var handler = new SlashReturnHandler();
+			var result = Json(handler.HandleRequest(body).Result);
+			result.StatusCode = 200;
+			return result;
+		}
+
+	}
 }
