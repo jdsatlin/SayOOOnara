@@ -19,7 +19,12 @@ namespace OOOBotCore
 
 
 		public TimeSpan OooLength { get; private set; }
-		public string Message { get; private set; }
+		private string _message;
+		public string Message
+		{
+			get => _message;
+			set => _message = value.Trim();
+		}
 		public DateTime EndTime => StartTime + OooLength;
 		public int Id { get; }
 		private static int NextId { get; set; }
@@ -54,7 +59,7 @@ namespace OOOBotCore
 			OooLength = oooSpan;
 			Message = message;
 
-			OooPeriods.Periods.Add(this.Id, this);
+			OooPeriods.Periods.Add(Id, this);
 		}
 
 		public string OooPeriodSummary()
