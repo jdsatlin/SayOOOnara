@@ -12,7 +12,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Infrastructure;
 using Newtonsoft.Json;
 
-namespace OOOBotCore.Controllers
+namespace SayOOOnara.Controllers
 {
     [Produces("application/json")]
     public class OooController : Controller

@@ -9,7 +9,7 @@ using Chronic.Core;
 using Chronic.Core.System;
 using Newtonsoft.Json;
 
-namespace OOOBotCore
+namespace SayOOOnara
 {
     public interface IOptions
     {
@@ -79,6 +79,11 @@ namespace OOOBotCore
 			string broadcastDays = option.BroadcastDays;
 			_broadcastDays.AddRange(broadcastDays.ToLower().Replace(" ", "").Split(',')
 				.Where(d => DaysOfTheWeek.Contains(d)));
+
+			if (_broadcastDays.Count == 0)
+			{
+				DaysOfTheWeek.ForEach(d => _broadcastDays.Add(d));
+			}
 
 			string[] broadcastTimes = option.BroadcastTimes.ToLower().Replace(" ", "").Split(',');
 			var parser = new Parser();

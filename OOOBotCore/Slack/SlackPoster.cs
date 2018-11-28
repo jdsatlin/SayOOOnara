@@ -9,7 +9,6 @@ using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
-using System.Timers;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -19,7 +18,7 @@ using Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Http;
 using Microsoft.Rest;
 using Newtonsoft.Json;
 
-namespace OOOBotCore
+namespace SayOOOnara
 {
 	public class SlackClient : HttpClient
 	{
@@ -126,52 +125,5 @@ namespace OOOBotCore
 		}
 
 		
-	}
-
-	public class MessageScheduler
-	{
-		private Timer Timer;
-		private DateTime _timeOfDay;
-		private DateTime TimeOfDay
-		{
-			get
-			{
-				_timeOfDay = UpdateToNextOccurence(_timeOfDay);
-				return _timeOfDay;
-			}
-			set => _timeOfDay = value;
-		}
-
-		private double MillisecondsAway => (TimeOfDay - DateTime.Now).TotalMilliseconds;
-
-		public MessageScheduler(DateTime timeOfDay)
-		{
-			TimeOfDay = UpdateToNextOccurence(timeOfDay);
-			Timer =  new Timer(MillisecondsAway);
-			Timer.Elapsed += TimerOnElapsed;
-			Timer.AutoReset = true;
-			Timer.Enabled = true;
-
-		}
-
-		private void TimerOnElapsed(object sender, ElapsedEventArgs e)
-		{
-			var poster = new SlackClient();
-			poster.PostBroadcast();
-			TimeOfDay = UpdateToNextOccurence(TimeOfDay);
-			Timer.Interval = MillisecondsAway;
-		}
-
-		private static DateTime UpdateToNextOccurence(DateTime input)
-		{
-			if (input > DateTime.Now)
-			{
-				return input;
-			}
-
-			var gap = DateTime.Now.Date - input.Date;
-			return input.AddDays(gap.Days + 1);
-		}
-
 	}
 }

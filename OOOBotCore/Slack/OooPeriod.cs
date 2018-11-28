@@ -2,9 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Threading.Tasks;
 using Chronic.Core.System;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Serialization;
 
-namespace OOOBotCore
+namespace SayOOOnara
 {
 	public class OooPeriod
 	{
@@ -14,21 +17,25 @@ namespace OOOBotCore
 			get => _startTime;
 			private set => _startTime = value < DateTime.UtcNow ? DateTime.UtcNow : value;
 		}
-
+		
+		[JsonIgnore]
 		public bool IsCurrentlyActive => StartTime <= DateTime.UtcNow && EndTime > DateTime.UtcNow;
 
 
-		public TimeSpan OooLength { get; private set; }
+		public TimeSpan OooLength { get; set; }
 		private string _message;
 		public string Message
 		{
 			get => _message;
 			set => _message = value.Trim();
 		}
+		[JsonIgnore]
 		public DateTime EndTime => StartTime + OooLength;
 		public int Id { get; }
+		[JsonIgnore]
 		private static int NextId { get; set; }
 		public string UserId { get; }
+		[JsonIgnore]
 		private static readonly object Lock = new object();
 
 
@@ -59,7 +66,32 @@ namespace OOOBotCore
 			OooLength = oooSpan;
 			Message = message;
 
-			OooPeriods.Periods.Add(Id, this);
+			OooPeriods.AddOooPeriod(this);
+		}
+
+		
+		/// <summary>
+		/// For use with direct loads only. ID should set by constructor for all new periods.
+		/// </summary>
+		/// <param name="userId"></param>
+		/// <param name="startTime"></param>
+		/// <param name="endTime"></param>
+		/// <param name="message"></param>
+		/// <param name="id"></param>
+		[JsonConstructor]
+		public OooPeriod(string userId, DateTime startTime, DateTime endTime, string message, int id)
+		{
+			lock (Lock)
+			{
+				NextId = NextId > id ? NextId : id + 1;
+			}
+
+			Id = id;
+			UserId = userId;
+			StartTime = startTime;
+			OooLength = endTime - StartTime;
+			Message = message;
+			
 		}
 
 		public string OooPeriodSummary()
@@ -70,18 +102,18 @@ namespace OOOBotCore
 			bool periodInEffect = startTime <= DateTime.Now && endTime >= DateTime.Now;
 
 			return $"You {(periodInEffect ? "have been" : "will be")} marked Out of Office beginning" +
-			       $" {(startTime.Date == DateTime.Today ? startTime.ToString("t", CultureInfo.CurrentCulture) : StartTime.Hour == 0 ? StartTime.ToShortDateString() : StartTime.ToString("g", CultureInfo.CurrentCulture))}" +
-			       $" {(endTime == DateTime.MaxValue ? "with no return date set." : "and returning " + (endTime.Hour == 0 ? endTime.ToShortDateString() : endTime.ToString("g", CultureInfo.CurrentCulture)))}.\n" +
+			       $" {(startTime.Date == DateTime.Today ? startTime.ToString("t", CultureInfo.CurrentCulture) : startTime.Hour == 0 ? startTime.ToShortDateString() : startTime.ToString("g", CultureInfo.CurrentCulture))}" +
+			       $" {(endTime.Year == DateTime.MaxValue.Year ? "with no return date set" : "and returning " + (endTime.Hour == 0 ? endTime.ToShortDateString() : endTime.ToString("g", CultureInfo.CurrentCulture)))}.\n" +
 			       $" You{(string.IsNullOrWhiteSpace(message) ? " do not have an an out of office message." : "r out of office message is: " + message)}";
 		}
 
 
 	}
 
-	public static class OooPeriods
+	public class OooPeriods
 	{
 		private static readonly Dictionary<int, OooPeriod> _oooPeriods = new Dictionary<int, OooPeriod>();
-		public static Dictionary<int, OooPeriod> Periods
+		private static Dictionary<int, OooPeriod> Periods
 		{
 			get
 			{
@@ -94,8 +126,14 @@ namespace OOOBotCore
 		}
 
 		private static Dictionary<int, OooPeriod> HistoricalOooPeriods { get; } = new Dictionary<int, OooPeriod>();
+		private static IStorage<OooPeriod> _storageProvider;
 
-		static OooPeriod GetById(int id)
+		public OooPeriods(IStorage<OooPeriod> storageProvider)
+		{
+			_storageProvider = storageProvider;
+		}
+
+		public static OooPeriod GetById(int id)
 		{
 			return Periods[id];
 		}
@@ -108,12 +146,16 @@ namespace OOOBotCore
 		public static void RemoveOooPeriodByPeriodId(int periodId)
 		{
 			var period = Periods[periodId];
+			
 			if (period.IsCurrentlyActive)
 			{
+				period.OooLength = DateTime.UtcNow - period.StartTime;
 				HistoricalOooPeriods.Add(period.Id, period);
 			}
 
 			Periods.Remove(periodId);
+
+			_storageProvider.SaveAll(Periods.Select(p => p.Value).ToList());
 		}
 
 		public static List<OooPeriod> GetAllActive()
@@ -121,6 +163,18 @@ namespace OOOBotCore
 			var activePeriods = new List<OooPeriod>();
 			Periods.Where(p => p.Value.IsCurrentlyActive).ForEach(p => activePeriods.Add(p.Value));
 			return activePeriods;
+		}
+
+		public static void AddOooPeriod(OooPeriod period)
+		{
+			Periods.Add(period.Id, period);
+			_storageProvider.SaveAll(Periods.Select(p => p.Value).ToList());
+		}
+
+		public async Task LoadOooPeriods()
+		{
+			var periodList = await _storageProvider.GetAll();
+			periodList.ForEach(p => Periods.Add(p.Id, p));
 		}
 	}
 }

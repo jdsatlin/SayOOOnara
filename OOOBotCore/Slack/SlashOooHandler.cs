@@ -3,8 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Chronic.Core;
+using Microsoft.AspNetCore.Razor.Language.CodeGeneration;
 
-namespace OOOBotCore
+namespace SayOOOnara
 {
 	public class SlashOooHandler : SlashCommandReader
 	{
@@ -41,13 +42,14 @@ namespace OOOBotCore
 					? commandText.Split(',', commaCount).ToList()
 					: commandText.Split(' ', spaceCount).ToList();
 
-				startTime = parser.Parse(commands[0])?.ToTime() ?? startTime;
+				startTime = parser.Parse(commands[0])?.Start ?? startTime;
 			}
 
 			switch (commands.Count)
 			{
 
-				case 1: UserOooPeriod = new OooPeriod(UserId, startTime);
+				case 1: UserOooPeriod = new OooPeriod(UserId, startTime,
+						new DateTime(startTime.Year, startTime.Month, startTime.Day + 1, 0, 0, 0));
 					break;
 				case 2:
 				{
@@ -61,16 +63,17 @@ namespace OOOBotCore
 					UserOooPeriod = new OooPeriod(UserId, startTime, endTime, commands[2]);
 					break;
 				}
-				default: UserOooPeriod = new OooPeriod(UserId, DateTime.Now);
+				default: UserOooPeriod = new OooPeriod(UserId, DateTime.Now,
+						new DateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day + 1, 0, 0, 0));
 					break;
 			}
 		}
 
 		private DateTime parseEndTime(string input)
 		{
-			var parser = new Chronic.Core.Parser();
+			var parser = new Chronic.Core.Parser() {};
 			var endTime = DateTime.MaxValue;
-			endTime = parser.Parse(input)?.ToTime() ?? endTime;
+			endTime = parser.Parse(input)?.Start ?? endTime;
 			return endTime = endTime < DateTime.Now ? DateTime.Now : endTime;
 
 		}

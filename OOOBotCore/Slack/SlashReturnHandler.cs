@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace OOOBotCore
+namespace SayOOOnara
 {
 	public class SlashReturnHandler : SlashCommandReader
 	{

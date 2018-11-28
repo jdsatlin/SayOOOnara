@@ -1,12 +1,18 @@
 using System;
 using System.Collections.Generic;
+using System.IO.Enumeration;
 using System.Linq;
 using System.Runtime.InteropServices.ComTypes;
+using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore.Design;
+using Microsoft.IdentityModel.Tokens;
+using Newtonsoft.Json;
 
-namespace OOOBotCore
+namespace SayOOOnara
 {
     public class User : IEquatable<User>
     {
+		[JsonIgnore]
 	    public bool IsOoo => OooPeriods.GetByUserId(UserId).Any(p => p.IsCurrentlyActive);
         public string UserId { get; }
         public string UserName { get; set; }
@@ -31,13 +37,14 @@ namespace OOOBotCore
         }
     }
 
-	public static class Users
+	public class Users
 	{
-		private static readonly Dictionary<string, User> _users;
+		private static readonly Dictionary<string, User> _users = new Dictionary<string, User>();
+		private static IStorage<User> _storageProvider;
 
-		static Users()
+		public Users(IStorage<User> storageProvider)
 		{
-		_users = new Dictionary<string, User>(); 
+		_storageProvider = storageProvider;
 		}
 
 		public static User FindOrCreateUser(string userId)
@@ -47,6 +54,7 @@ namespace OOOBotCore
 			{
 				user = new User(userId);
 				_users.Add(user.UserId, user);
+				_storageProvider.SaveAll(_users.Select(u => u.Value).ToList());
 			}
 			else
 			{
@@ -54,6 +62,12 @@ namespace OOOBotCore
 			}
 
 			return user;
+		}
+
+		public async Task LoadUsers()
+		{
+			var savedUsers = await _storageProvider.GetAll();
+			savedUsers.ForEach(u => _users.Add(u.UserId, u));
 		}
 	}
 }
