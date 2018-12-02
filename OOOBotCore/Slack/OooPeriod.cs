@@ -5,7 +5,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Chronic.Core.System;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Serialization;
+using SayOOOnara;
 
 namespace SayOOOnara
 {
@@ -180,7 +180,13 @@ namespace SayOOOnara
 		public async Task LoadOooPeriods()
 		{
 			var periodList = await _storageProvider.GetAll();
-			periodList.ForEach(p => Periods.Add(p.Id, p));
+			periodList.ForEach(p =>
+			{
+				if (p.EndTime <= DateTime.UtcNow)
+					HistoricalOooPeriods.Add(p.Id, p);
+				else
+					Periods.Add(p.Id, p);
+			});
 		}
 
 		public static List<OooPeriod> GetUpcomingOooPeriodsByUserId(string userId)
@@ -190,7 +196,10 @@ namespace SayOOOnara
 
 		public static async Task ForceSave()
 		{
-			_storageProvider.SaveAll(Periods.Select(p => p.Value).ToList());
+			var completeList = new List<OooPeriod>();
+			completeList.AddRange(Periods.Select(p => p.Value));
+			completeList.AddRange(HistoricalOooPeriods.Select(p => p.Value));
+			_storageProvider.SaveAll(completeList);
 		}
 	}
 }

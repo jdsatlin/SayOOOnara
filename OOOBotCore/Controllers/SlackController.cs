@@ -1,17 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
+﻿using System.IO;
 using System.Net;
-using System.Net.Http;
-using System.Net.Mime;
 using System.Text;
-using System.Threading.Tasks;
-using System.Web;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Internal;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Infrastructure;
 using Newtonsoft.Json;
 
 namespace SayOOOnara.Controllers
@@ -19,9 +10,10 @@ namespace SayOOOnara.Controllers
     [Produces("application/json")]
     public class OooController : Controller
     {
-
-	    public OooController()
+	    private ISlackClient SlackClient { get; }
+	    public OooController(ISlackClient slackClient)
 	    {
+		    SlackClient = slackClient;
 	    }
 
 	    [HttpPost]
@@ -36,12 +28,13 @@ namespace SayOOOnara.Controllers
 			    body = reader.ReadToEnd();
 		    }
 
-		    var handler = new SlashOooHandler(body);
+		    var handler = new SlashOooHandler(body, SlackClient);
 		    var result = Json(handler.HandleRequest().Result);
-		    result.StatusCode = 200;
-		    return result;
+		    result.StatusCode = (int?) HttpStatusCode.OK;
+			return result;
 
 	    }
+
 		[HttpPost]
 		public ContentResult Return()
 		{
@@ -56,7 +49,6 @@ namespace SayOOOnara.Controllers
 			var result = Content(JsonConvert.SerializeObject(handler.HandleRequest().Result), "application/json");
 			result.StatusCode = (int?) HttpStatusCode.OK;
 		
-			Console.WriteLine(result.Content);
 			return result;
 
 		}

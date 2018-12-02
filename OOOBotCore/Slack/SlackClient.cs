@@ -1,6 +1,9 @@
 using System;
+using System.Collections.Generic;
+using System.Dynamic;
 using System.Globalization;
 using System.IdentityModel.Tokens.Jwt;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -9,6 +12,7 @@ using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
+using System.Web;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -24,6 +28,8 @@ namespace SayOOOnara
 	public interface ISlackClient : IDisposable
 	{
 		Task DeletePeriod(int periodId, Uri responseUri);
+		Task UpdateLastMessage();
+
 
 	}
 	public class SlackClient : HttpClient, ISlackClient
@@ -31,7 +37,10 @@ namespace SayOOOnara
 	    private readonly OAuthClient _oAuthClient;
 		private string _authToken => _oAuthClient.AuthToken;
 		private const string PostMessageUrl = "https://slack.com/api/chat.postMessage";
+		private const string updateMessageUrl = "https://slack.com/api/chat.update";
 		private static IOptions _options;
+		private static string LastMessageIdentifier { get; set; }
+		private static string MessageChannel { get; set; }
 
 
 
@@ -40,7 +49,6 @@ namespace SayOOOnara
 	        _oAuthClient = new OAuthClient();
 			DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _authToken);
 			_options = new OptionsFile();
-		   // AuthTest();
 	    }
 
 		private enum MimeType
@@ -59,29 +67,54 @@ namespace SayOOOnara
 			}
 		}
 
-		private async void AuthTest()
+		private async Task AuthTest()
 		{
 			var body = new StringContent(JsonConvert.SerializeObject(""));
 			body.Headers.ContentType = MediaTypeHeaderValue.Parse(getMediaType(MimeType.Json));
-			Console.WriteLine(body.AsString());
 			var response = await PostAsync(new Uri("https://slack.com/api/auth.test"), body);
-			Console.WriteLine(response.AsFormattedString());
 
 
 		}
 
-		public async void PostBroadcast()
+		public async Task PostBroadcast()
 		{
 			string message = await BuildBroadcastMessage();
 			var channel = _options.GetBroadcastChannel();
 			var json = new {channel = channel, text = message};
 			var requestBody = new StringContent(JsonConvert.SerializeObject(json));
-			Console.WriteLine(requestBody.AsString());
-			
 			requestBody.Headers.ContentType = MediaTypeHeaderValue.Parse(getMediaType(MimeType.Json));
+
 			var response = await PostAsync(PostMessageUrl, requestBody);
-			Console.WriteLine(response.StatusCode);
-			Console.WriteLine(response.AsFormattedString());
+
+			await SetLastMessageIdentifier(await response.Content.ReadAsStringAsync());
+		}
+
+		private async Task SetLastMessageIdentifier(string postBody)
+		{
+
+			dynamic responseBody = JsonConvert.DeserializeObject<ExpandoObject>(postBody);
+
+			LastMessageIdentifier = responseBody.ts.ToString();
+			MessageChannel = responseBody.channel;
+
+		}
+
+		public async Task UpdateLastMessage()
+		{
+			if (string.IsNullOrWhiteSpace(LastMessageIdentifier))
+			{
+				return;
+			}
+			string message = await BuildBroadcastMessage();
+			var json = new {channel = MessageChannel, text = message, ts = LastMessageIdentifier};
+			var requestBody = new StringContent(JsonConvert.SerializeObject(json));
+			requestBody.Headers.ContentType = MediaTypeHeaderValue.Parse(getMediaType(MimeType.Json));
+
+			var response = await PostAsync(updateMessageUrl, requestBody);
+
+			var responseBody = await response.Content.ReadAsStringAsync();
+
+			Console.WriteLine(responseBody);
 
 		}
 

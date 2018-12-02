@@ -4,7 +4,6 @@ using System.Dynamic;
 using System.IO;
 using System.Linq;
 using System.Xml.Linq;
-using System.Xml.Serialization;
 using Chronic.Core;
 using Chronic.Core.System;
 using Newtonsoft.Json;
@@ -75,7 +74,7 @@ namespace SayOOOnara
 
 		    _clientId = option.ClientID ?? string.Empty;
 			_clientSecret = option.ClientSecret ?? string.Empty;
-		    _authToken = option.AuthToken ?? string.Empty;;
+		    _authToken = option.AuthToken ?? string.Empty;
 			_broadcastChannel = option.BroadcastChannel ?? string.Empty;
 			_binding = option.Binding ?? "http://*:80";
 

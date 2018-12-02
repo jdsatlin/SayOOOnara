@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Chronic.Core;
-using Microsoft.AspNetCore.Razor.Language.CodeGeneration;
 
 namespace SayOOOnara
 {
@@ -12,17 +11,22 @@ namespace SayOOOnara
 		private User OooUser { get; set; }
 		private OooPeriod UserOooPeriod { get; set; }
 		private const int SecondsInADay = 86400;
+		private ISlackClient SlackClient { get; }
 
-		public SlashOooHandler(string postBody)
+		public SlashOooHandler(string postBody, ISlackClient slackClient)
 		: base(postBody)
 		{
-
+			SlackClient = slackClient;
 		}
 
 		public async Task<object> HandleRequest()
 		{
 			await ReadCommand();
 			await InterpretCommandText(CommandText);
+			if (UserOooPeriod.StartTime.Date == DateTime.UtcNow.Date)
+			{
+				SlackClient.UpdateLastMessage();
+			}
 			return await CreateResponse();
 		}
 
@@ -92,10 +96,10 @@ namespace SayOOOnara
 
 		private DateTime parseEndTime(string input)
 		{
-			var parser = new Chronic.Core.Parser() {};
+			var parser = new Parser();
 			var endTime = DateTime.MaxValue;
 			endTime = parser.Parse(input)?.Start ?? endTime;
-			return endTime = endTime < DateTime.Now ? DateTime.Now : endTime;
+			return endTime < DateTime.Now ? DateTime.Now : endTime;
 
 		}
 

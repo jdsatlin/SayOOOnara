@@ -17,7 +17,7 @@ namespace SayOOOnara
 			}
 			set => _timeOfDay = value;
 		}
-		private static readonly IOptions _options = new OptionsFile();
+		private static readonly IOptions Options = new OptionsFile();
 
 		
 
@@ -55,7 +55,7 @@ namespace SayOOOnara
 
 		private static DateTime DetermineNextValidDayOfWeek(DateTime input)
 		{
-			if (!_options.GetBroadcastDays().Contains(input.DayOfWeek.ToString().ToLower()))
+			if (!Options.GetBroadcastDays().Contains(input.DayOfWeek.ToString().ToLower()))
 			{
 				DetermineNextValidDayOfWeek(input.AddDays(1));
 			}
@@ -63,10 +63,6 @@ namespace SayOOOnara
 			return input;
 		}
 
-		public class SlackParser : Chronic.Core.Parser
-		{
-			
-		}
 
 	}
 }

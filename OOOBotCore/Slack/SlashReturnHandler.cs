@@ -1,9 +1,7 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Newtonsoft.Json;
 
 namespace SayOOOnara
 {
@@ -77,7 +75,8 @@ namespace SayOOOnara
 			var button = new
 			{
 				name = "OOOPeriod",
-				text = $"{period.StartTime.ToLocalTime().ToShortDateString()}-{period.EndTime.ToLocalTime().ToShortDateString()}:" +
+				text = $"{period.StartTime.ToLocalTime().ToShortDateString()}-{period.EndTime.ToLocalTime().ToShortDateString()}" +
+					   $"{(period.Message.Length > 0 ? ":" : "")}" +
 				       $" {(period.Message.Length > 10 ? period.Message.Substring(0, 10) : period.Message)}",
 				type = "button",
 				value = $"{period.Id}"

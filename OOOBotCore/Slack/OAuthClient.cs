@@ -8,8 +8,8 @@ namespace SayOOOnara
 {
     public class OAuthClient : HttpClient
     {
-        private const string oAuthAddress = "https://slack.com/oauth/authorize";
-        private const string oAuthAccessAddress = "https://slack.com/api/oauth.access";
+        private const string OAuthAddress = "https://slack.com/oauth/authorize";
+        private const string OAuthAccessAddress = "https://slack.com/api/oauth.access";
         private string _authToken;
         private readonly IOptions _options;
 
@@ -32,7 +32,6 @@ namespace SayOOOnara
 
                 return _authToken;
             }
-           private set => _authToken = value;
         }
 
         private string ClientId => _options.GetClientId();
@@ -41,7 +40,7 @@ namespace SayOOOnara
         public async Task<string> InitialOAuthRequest()
         {
             string accessCode = "";
-            var url = new Uri(oAuthAddress + "?scope=" + SetScope() + "&client_id=" + ClientId + "&redirect_uri=" + oAuthAddress);
+            var url = new Uri(OAuthAddress + "?scope=" + SetScope() + "&client_id=" + ClientId + "&redirect_uri=" + OAuthAddress);
             HttpResponseMessage response = await GetAsync(url);
             if (response.IsSuccessStatusCode)
             {
@@ -56,7 +55,7 @@ namespace SayOOOnara
         public async Task<Dictionary<string, string>> ExchangeOAuthCodeForAccessToken(string accessCode)
         {
 
-            var url = new Uri(oAuthAccessAddress);
+            var url = new Uri(OAuthAccessAddress);
 
             var authCodeBody = new KeyValuePair<string, string>("Code", accessCode);
             var clientIdBody = new KeyValuePair<string, string>("client_id", ClientId);
