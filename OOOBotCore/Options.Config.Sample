@@ -7,9 +7,11 @@
 	<AuthToken></AuthToken>
 	<!-- Slack Channel to broadcast out of office notification to-->
 	<BroadcastChannel></BroadcastChannel>
-	<!-- List of times to broadcast in comma seperated list. Accepts 12 or 24 hour time (e.g. 3:30AM, 1PM, 14:00 -->
+	<!-- List of times to broadcast in comma seperated list. Accepts 12 or 24 hour time (e.g. 3:30AM, 1PM, 14:00) -->
 	<BroadcastTimes></BroadcastTimes>
 	<!-- List of Days to broadcast, in comma seperated list (e.g. Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday)-->
 	<BroadcastDays></BroadcastDays>
+	<!--Web binding for HTTP server. Accepts a protocol, a hostname and a port in the format "http://127.0.0.1:888" Hostname of * will bind on every available IP, and a blank port will bind on 80 -->
+	<Binding></Binding>
 </configuration>
 

@@ -49,8 +49,6 @@ namespace SayOOOnara
 				    scheduledMessages.Add(scheduledMessage);
 			    }
 
-			    var posted = new SlackClient();
-
 			    BuildWebHost(args).Run();
 		    }
 	    }
@@ -59,7 +57,7 @@ namespace SayOOOnara
 	    public static IWebHost BuildWebHost(string[] args) =>
             WebHost.CreateDefaultBuilder(args)
                 .UseStartup<Startup>()
-	            .UseUrls("http://*:6111")
+	            .UseUrls($"{_options.GetBinding()}")
 				.Build();
     }
 }

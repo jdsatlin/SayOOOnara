@@ -107,6 +107,12 @@ namespace SayOOOnara
 			       $" You{(string.IsNullOrWhiteSpace(message) ? " do not have an an out of office message." : "r out of office message is: " + message)}";
 		}
 
+		public void EndNow()
+		{
+			OooLength = DateTime.UtcNow - StartTime;
+			OooPeriods.ForceSave();
+		}
+
 
 	}
 
@@ -155,7 +161,7 @@ namespace SayOOOnara
 
 			Periods.Remove(periodId);
 
-			_storageProvider.SaveAll(Periods.Select(p => p.Value).ToList());
+			ForceSave();
 		}
 
 		public static List<OooPeriod> GetAllActive()
@@ -168,13 +174,23 @@ namespace SayOOOnara
 		public static void AddOooPeriod(OooPeriod period)
 		{
 			Periods.Add(period.Id, period);
-			_storageProvider.SaveAll(Periods.Select(p => p.Value).ToList());
+			ForceSave();
 		}
 
 		public async Task LoadOooPeriods()
 		{
 			var periodList = await _storageProvider.GetAll();
 			periodList.ForEach(p => Periods.Add(p.Id, p));
+		}
+
+		public static List<OooPeriod> GetUpcomingOooPeriodsByUserId(string userId)
+		{
+			return Periods.Values.Where(p => p.UserId == userId && p.StartTime > DateTime.UtcNow).ToList();
+		}
+
+		public static async Task ForceSave()
+		{
+			_storageProvider.SaveAll(Periods.Select(p => p.Value).ToList());
 		}
 	}
 }

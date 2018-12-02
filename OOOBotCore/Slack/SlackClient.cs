@@ -20,7 +20,13 @@ using Newtonsoft.Json;
 
 namespace SayOOOnara
 {
-	public class SlackClient : HttpClient
+
+	public interface ISlackClient : IDisposable
+	{
+		Task DeletePeriod(int periodId, Uri responseUri);
+
+	}
+	public class SlackClient : HttpClient, ISlackClient
 	{
 	    private readonly OAuthClient _oAuthClient;
 		private string _authToken => _oAuthClient.AuthToken;
@@ -34,10 +40,7 @@ namespace SayOOOnara
 	        _oAuthClient = new OAuthClient();
 			DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _authToken);
 			_options = new OptionsFile();
-		    AuthTest();
-
-
-
+		   // AuthTest();
 	    }
 
 		private enum MimeType
@@ -124,6 +127,18 @@ namespace SayOOOnara
 			return baseMessage + oooUserMessages;
 		}
 
-		
+
+		public async Task DeletePeriod(int periodId, Uri responseUri)
+		{
+			var period = OooPeriods.GetById(periodId);
+			OooPeriods.RemoveOooPeriodByPeriodId(periodId);
+			var messageText =
+				$"Your upcoming out of office period beginning {period.StartTime.ToLocalTime().ToShortDateString()}," +
+				$" and ending {period.EndTime.ToLocalTime().ToShortDateString()} has been cancelled.";
+			var requestBody = new StringContent(JsonConvert.SerializeObject(new {text = messageText}));
+			requestBody.Headers.ContentType = MediaTypeHeaderValue.Parse(getMediaType(MimeType.Json));
+			var response = await PostAsync(responseUri, requestBody);
+
+		}
 	}
 }

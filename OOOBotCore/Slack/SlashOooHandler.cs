@@ -7,10 +7,24 @@ using Microsoft.AspNetCore.Razor.Language.CodeGeneration;
 
 namespace SayOOOnara
 {
-	public class SlashOooHandler : SlashCommandReader
+	public class SlashOooHandler : SlackCommandReader
 	{
 		private User OooUser { get; set; }
 		private OooPeriod UserOooPeriod { get; set; }
+		private const int SecondsInADay = 86400;
+
+		public SlashOooHandler(string postBody)
+		: base(postBody)
+		{
+
+		}
+
+		public async Task<object> HandleRequest()
+		{
+			await ReadCommand();
+			await InterpretCommandText(CommandText);
+			return await CreateResponse();
+		}
 
 		protected override async Task ReadCommand()
 		{
@@ -18,10 +32,9 @@ namespace SayOOOnara
 
 			OooUser = Users.FindOrCreateUser(UserId);
 			OooUser.UserName = UserName;
-			await InterpretCommandText(CommandText);
 		}
 
-		protected override async Task<object> CreateResponse()
+		protected async Task<object> CreateResponse()
 		{
 			return new {text = UserOooPeriod.OooPeriodSummary()};
 		}
@@ -35,12 +48,8 @@ namespace SayOOOnara
 			{
 				commandText = RemoveDoubleSpaces(commandText);
 				var commaCount = commandText.ToCharArray().Count(c => c == ',') + 1;
-				var spaceCount = commandText.ToCharArray().Count(c => c == ' ') + 1;
-				spaceCount = spaceCount > 3 ? 3 : spaceCount;
 				commaCount = commaCount > 3 ? 3 : commaCount;
-				commands = commaCount > 0
-					? commandText.Split(',', commaCount).ToList()
-					: commandText.Split(' ', spaceCount).ToList();
+				commands = commandText.Split(',', commaCount).ToList();
 
 				startTime = parser.Parse(commands[0])?.Start ?? startTime;
 			}
@@ -48,8 +57,20 @@ namespace SayOOOnara
 			switch (commands.Count)
 			{
 
-				case 1: UserOooPeriod = new OooPeriod(UserId, startTime,
-						new DateTime(startTime.Year, startTime.Month, startTime.Day + 1, 0, 0, 0));
+				case 1:
+					var startTimeRangeCheck = parser.Parse(commands[0]);
+					if (startTimeRangeCheck.Start != null
+					    && startTimeRangeCheck.End != null 
+					    && startTimeRangeCheck.Width > SecondsInADay)
+					{
+						UserOooPeriod = new OooPeriod(UserId, 
+							(DateTime) startTimeRangeCheck.Start, (DateTime) startTimeRangeCheck.End);
+					}
+					else
+					{
+						UserOooPeriod = new OooPeriod(UserId, startTime,
+							new DateTime(startTime.Year, startTime.Month, startTime.Day + 1, 0, 0, 0));
+					}
 					break;
 				case 2:
 				{

@@ -14,6 +14,9 @@ namespace SayOOOnara
     {
 		[JsonIgnore]
 	    public bool IsOoo => OooPeriods.GetByUserId(UserId).Any(p => p.IsCurrentlyActive);
+
+	    [JsonIgnore]
+	    public bool HasUpcomingOooPeriods => OooPeriods.GetByUserId(UserId).Any(p => p.StartTime > DateTime.UtcNow);
         public string UserId { get; }
         public string UserName { get; set; }
 

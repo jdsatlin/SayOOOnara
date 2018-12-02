@@ -25,6 +25,7 @@ namespace SayOOOnara
 
 	    string GetBroadcastChannel();
 
+	    string GetBinding();
 
 
     }
@@ -58,6 +59,7 @@ namespace SayOOOnara
 		private readonly List<string> _broadcastDays = new List<string>();
 		private readonly List<DateTime> _broadcastTimesUtc = new List<DateTime>();
 		private string _broadcastChannel;
+		private string _binding;
 
 		public void LoadOptions()
 		{
@@ -75,6 +77,7 @@ namespace SayOOOnara
 			_clientSecret = option.ClientSecret ?? string.Empty;
 		    _authToken = option.AuthToken ?? string.Empty;;
 			_broadcastChannel = option.BroadcastChannel ?? string.Empty;
+			_binding = option.Binding ?? "http://*:80";
 
 			string broadcastDays = option.BroadcastDays;
 			_broadcastDays.AddRange(broadcastDays.ToLower().Replace(" ", "").Split(',')
@@ -109,35 +112,19 @@ namespace SayOOOnara
 		};
 
 
-	    public string GetClientId()
-	    {
-	        return _clientId;
-	    }
+	    public string GetClientId() => _clientId;
 
-	    public string GetClientSecret()
-	    {
-	        return _clientSecret;
-	    }
+	    public string GetClientSecret() => _clientSecret;
 
-	    public string GetAuthToken()
-	    {
-	        return _authToken;
-	    }
+	    public string GetAuthToken() => _authToken;
 
-		public List<string> GetBroadcastDays()
-		{
-			return _broadcastDays;
-		}
+		public List<string> GetBroadcastDays() => _broadcastDays;
 
-		public List<DateTime> GetBroadcastTimes()
-		{
-			return _broadcastTimesUtc.Select(t => t.ToLocalTime()).ToList();
-		}
+		public List<DateTime> GetBroadcastTimes() => _broadcastTimesUtc.Select(t => t.ToLocalTime()).ToList();
 
-		public string GetBroadcastChannel()
-		{
-			return _broadcastChannel;
-		}
+		public string GetBroadcastChannel() => _broadcastChannel;
+
+		public string GetBinding() => _binding;
 	}
 
 }

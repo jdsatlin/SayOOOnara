@@ -1,29 +1,95 @@
+using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
 
 namespace SayOOOnara
 {
-	public class SlashReturnHandler : SlashCommandReader
+	public class SlashReturnHandler : SlackCommandReader
 	{
 		private User _user;
 		private bool _foundPeriods;
 
+		public SlashReturnHandler(string postBody)
+		: base(postBody)
+		{
+
+		}
+
+
+		public async Task<object> HandleRequest()
+		{
+
+			await ReadCommand();
+			return await CreateResponse();
+		}
 		protected override async Task ReadCommand()
 		{
 			await base.ReadCommand();
-
-			List<OooPeriod> userOooPeriods = new List<OooPeriod>();
 			_user = Users.FindOrCreateUser(UserId);
-			userOooPeriods = OooPeriods.GetByUserId(UserId);
-			_foundPeriods = userOooPeriods.Count > 0;
-			userOooPeriods.ForEach(p => OooPeriods.RemoveOooPeriodByPeriodId(p.Id));
 		}
 
-		protected async override Task<object> CreateResponse()
+		protected async Task<object> CreateResponse()
 		{
-			var responseText =
-				$"{(_foundPeriods ? "All your current and upcoming out of office periods have been cancelled" : "I could not find any current or upcoming out of office periods for you")}";
-			return new {text = responseText};
+			var textBuilder = new StringBuilder();
+			textBuilder.AppendLine(_user.IsOoo ? "You have been marked back in office" : "You are not currently out of office.");
+			foreach (var period in OooPeriods.GetByUserId(_user.UserId).Where(p => p.IsCurrentlyActive))
+			{
+				period.EndNow();
+			}
+			var upcomingOoo = _user.HasUpcomingOooPeriods;
+			textBuilder.AppendLine(upcomingOoo
+				? "You have the following upcoming out of office periods:"
+				: "You do not have any upcoming periods that can be cancelled.");
+			var attachments = new List<object>();
+			if (upcomingOoo)
+			{
+				
+				var actions = new List<object>();
+				foreach (var period in OooPeriods.GetUpcomingOooPeriodsByUserId(_user.UserId))
+				{
+					actions.Add(await oooCancellationBuilder(period));
+				}
+
+				var attachmentBody = new
+				{
+					text = "Select a period to cancel",
+					fallback = "Sorry, something went wrong",
+					callback_id = "cancelperiod",
+					actions = actions
+			};
+				attachments.Add(attachmentBody);
+
+			}
+
+			return new
+			{
+				text = textBuilder.ToString(),
+				attachments = attachments
+			};
+
 		}
+
+		protected async Task<object> oooCancellationBuilder(OooPeriod period)
+		{
+			var button = new
+			{
+				name = "OOOPeriod",
+				text = $"{period.StartTime.ToLocalTime().ToShortDateString()}-{period.EndTime.ToLocalTime().ToShortDateString()}:" +
+				       $" {(period.Message.Length > 10 ? period.Message.Substring(0, 10) : period.Message)}",
+				type = "button",
+				value = $"{period.Id}"
+			};
+			return button;
+		}
+
+		protected async Task DeletePeriod(int periodId)
+		{
+			OooPeriods.RemoveOooPeriodByPeriodId(periodId);
+		}
+
+	
 	}
 }
