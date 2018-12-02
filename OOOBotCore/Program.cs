@@ -8,7 +8,7 @@ namespace SayOOOnara
     public class Program
     {
 	    private static IOptions _options;
-		private static List<MessageScheduler> scheduledMessages = new List<MessageScheduler>();
+		private static readonly List<MessageScheduler> ScheduledMessages = new List<MessageScheduler>();
 	    private static IStorage<User> _userStorage;
 	    private static IStorage<OooPeriod> _oooPeriodStorage;
 	    public static OooPeriods OooPeriodCollection;
@@ -37,7 +37,7 @@ namespace SayOOOnara
 			    foreach (var dailypost in _options.GetBroadcastTimes())
 			    {
 				    var scheduledMessage = new MessageScheduler(client, dailypost);
-				    scheduledMessages.Add(scheduledMessage);
+				    ScheduledMessages.Add(scheduledMessage);
 			    }
 
 			    BuildWebHost(args).Run();

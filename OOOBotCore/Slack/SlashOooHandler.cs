@@ -6,7 +6,7 @@ using Chronic.Core;
 
 namespace SayOOOnara
 {
-	public class SlashOooHandler : SlackCommandReader
+	public class SlashOooHandler : SlashCommandReader
 	{
 		private User OooUser { get; set; }
 		private OooPeriod UserOooPeriod { get; set; }

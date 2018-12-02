@@ -55,7 +55,7 @@ namespace SayOOOnara.Controllers
 
 		[HttpPost]
 		[Produces("application/json")]
-		public JsonResult DeletePeriod()
+		public JsonResult Interactive()
 	    {
 			Request.EnableRewind();
 			Request.Body.Position = 0;
@@ -65,8 +65,9 @@ namespace SayOOOnara.Controllers
 				body = reader.ReadToEnd();
 			}
 
-		     var handler = new DeleteButtonHandler(body);
-		    var result = Json(handler.HandleRequest().Result);
+		    var handler = new InteractiveMessageDispatcher(body);
+		    var result = Json(handler.Dispatch().Result);
+			
 		    result.StatusCode = (int?) HttpStatusCode.OK;
 
 		    return result;

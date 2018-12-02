@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace SayOOOnara
 {
-	public class SlashReturnHandler : SlackCommandReader
+	public class SlashReturnHandler : SlashCommandReader
 	{
 		private User _user;
 		private bool _foundPeriods;

@@ -7,7 +7,7 @@ using Newtonsoft.Json;
 
 namespace SayOOOnara
 {
-	public class SlackCommandReader
+	public class SlashCommandReader
 	{
 		protected string UserId { get; set; }
 		protected string UserName { get; set; }
@@ -16,7 +16,7 @@ namespace SayOOOnara
 		protected SlackActionPayload Actions { get; set; }
 		protected string PostBody { get; }
 
-		protected SlackCommandReader(string postBody)
+		protected SlashCommandReader(string postBody)
 		{
 			PostBody = postBody;
 		}
