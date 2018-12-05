@@ -23,9 +23,9 @@ namespace SayOOOnara
 		{
 			await ReadCommand();
 			await InterpretCommandText(CommandText);
-			if (UserOooPeriod.StartTime.Date == DateTime.UtcNow.Date)
+			if (UserOooPeriod.StartTime.ToLocalTime().Date == DateTime.Now.Date)
 			{
-				SlackClient.UpdateLastMessage();
+				await SlackClient.UpdateLastMessage();
 			}
 			return await CreateResponse();
 		}
