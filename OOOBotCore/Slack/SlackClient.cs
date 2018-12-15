@@ -120,8 +120,8 @@ namespace SayOOOnara
 
 		private async Task<string> BuildBroadcastMessage()
 		{
-			var activeOooPeriods = OooPeriods.GetAllActive();
-			bool usersAreOoo = activeOooPeriods.Count > 0;
+			var dailyOooPeriods = OooPeriods.GetAllForDay();
+			bool usersAreOoo = dailyOooPeriods.Count > 0;
 			var baseMessage =
 				$"Today is {DateTime.Now.ToShortDateString()} \n"
 				+ $"{(usersAreOoo ? "The following users are out of office today:\n" : "No one is out of office today.")}";
@@ -129,10 +129,10 @@ namespace SayOOOnara
 			string oooUserMessages = string.Empty;
 			if (usersAreOoo)
 			{
-				for (var i = 0; i <activeOooPeriods.Count; i++)
+				for (var i = 0; i <dailyOooPeriods.Count; i++)
 				{
-					var period = activeOooPeriods[i];
-					var userName = Users.FindOrCreateUser(period.UserId).UserName;
+					var period = dailyOooPeriods[i];
+					var userName = Users.Find(period.UserId).UserName;
 					var startTime = period.StartTime.ToLocalTime();
 					var startTimeText = "From: "
 					                    + (startTime.Hour == 0
@@ -144,7 +144,7 @@ namespace SayOOOnara
 						                  ? endTime.ToShortDateString()
 						                  : endTime.ToString("g", CultureInfo.CurrentCulture));
 					var userMessageText = $"Their message is: {period.Message}";
-					if (i < activeOooPeriods.Count - 1)
+					if (i < dailyOooPeriods.Count - 1)
 					{
 						sb.AppendLine(userName + " " + startTimeText + " " + endTimeText + " " + userMessageText);
 					}

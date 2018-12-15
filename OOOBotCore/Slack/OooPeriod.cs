@@ -4,23 +4,30 @@ using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 using Chronic.Core.System;
+using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 using SayOOOnara;
+using SayOOOnara.Persistance;
 
 namespace SayOOOnara
 {
 	public class OooPeriod
 	{
+		public int Id { get; set; }
+
 		private DateTime _startTime;
-		public DateTime StartTime
-		{
-			get => _startTime;
-			private set => _startTime = value < DateTime.UtcNow ? DateTime.UtcNow : value;
-		}
+		public DateTime StartTime { get; set; }
 		
-		[JsonIgnore]
 		public bool IsCurrentlyActive => StartTime <= DateTime.UtcNow && EndTime > DateTime.UtcNow;
 
+		public bool IsHistorical
+		{
+			get { return EndTime <= DateTime.UtcNow; }
+			private set
+			{ 
+				//unfortunate hack to allow saving in entity framework
+            }
+		}
 
 		public TimeSpan OooLength { get; set; }
 		private string _message;
@@ -29,14 +36,18 @@ namespace SayOOOnara
 			get => _message;
 			set => _message = value.Trim();
 		}
-		[JsonIgnore]
 		public DateTime EndTime => StartTime + OooLength;
-		public int Id { get; }
-		[JsonIgnore]
-		private static int NextId { get; set; }
-		public string UserId { get; }
-		[JsonIgnore]
+		public string UserId { get; set; }
+		public virtual User User { get; set; }
+
+		public bool IsActiveToday => StartTime.ToLocalTime().Date <= DateTime.Now.Date &&
+		                             EndTime.ToLocalTime().Date >= DateTime.Now.Date;
 		private static readonly object Lock = new object();
+
+		private OooPeriod()
+		{
+
+		}
 
 
 		public OooPeriod(string userId, DateTime startTime) 
@@ -51,15 +62,9 @@ namespace SayOOOnara
 
 		public OooPeriod(string userId, DateTime startTime, DateTime endTime, string message)
 		{
-			lock (Lock)
-			{
-				Id = NextId;
-				NextId++;
-			}
-
 			UserId = userId;
 			var utcStart = startTime.ToUniversalTime();
-			StartTime = utcStart;
+			StartTime = utcStart > DateTime.UtcNow ? utcStart : DateTime.UtcNow;
 			var utcEnd = endTime.ToUniversalTime();
 			var oooSpan = utcEnd - StartTime;
 
@@ -69,30 +74,7 @@ namespace SayOOOnara
 			OooPeriods.AddOooPeriod(this);
 		}
 
-		
-		/// <summary>
-		/// For use with direct loads only. ID should set by constructor for all new periods.
-		/// </summary>
-		/// <param name="userId"></param>
-		/// <param name="startTime"></param>
-		/// <param name="endTime"></param>
-		/// <param name="message"></param>
-		/// <param name="id"></param>
-		[JsonConstructor]
-		public OooPeriod(string userId, DateTime startTime, DateTime endTime, string message, int id)
-		{
-			lock (Lock)
-			{
-				NextId = NextId > id ? NextId : id + 1;
-			}
-
-			Id = id;
-			UserId = userId;
-			StartTime = startTime;
-			OooLength = endTime - StartTime;
-			Message = message;
-			
-		}
+	
 
 		public string OooPeriodSummary()
 		{
@@ -107,10 +89,10 @@ namespace SayOOOnara
 			       $" You{(string.IsNullOrWhiteSpace(message) ? " do not have an an out of office message." : "r out of office message is: " + message)}";
 		}
 
-		public void EndNow()
+		public async void EndNow()
 		{
 			OooLength = DateTime.UtcNow - StartTime;
-			OooPeriods.ForceSave();
+			await OooPeriods.Save(this);
 		}
 
 
@@ -123,25 +105,37 @@ namespace SayOOOnara
 		{
 			get
 			{
-				var periodsToRemove = _oooPeriods.Where(p => p.Value.EndTime < DateTime.UtcNow).ToList();
-				periodsToRemove.ForEach(p => HistoricalOooPeriods[p.Key] = p.Value);
-				periodsToRemove.ForEach(p => _oooPeriods.Remove(p.Key));
+				var periodsToRemove = _oooPeriods.Where(p => p.Value.IsHistorical).ToList();
+
+				if (periodsToRemove.Any())
+				{
+					periodsToRemove.ForEach(p => HistoricalOooPeriods[p.Key] = p.Value);
+					periodsToRemove.ForEach(p => _oooPeriods.Remove(p.Key));
+
+					var periodsToUpdate = new List<OooPeriod>();
+					periodsToRemove.ForEach(p => periodsToUpdate.Add(p.Value));
+
+					Context.UpdateRange(periodsToUpdate);
+					Context.SaveChangesAsync();
+
+				}
 
 				return _oooPeriods;
 			}
 		}
 
 		private static Dictionary<int, OooPeriod> HistoricalOooPeriods { get; } = new Dictionary<int, OooPeriod>();
-		private static IStorage<OooPeriod> _storageProvider;
+		private static OooContext Context { get; set; }
 
-		public OooPeriods(IStorage<OooPeriod> storageProvider)
+		public OooPeriods()
 		{
-			_storageProvider = storageProvider;
+			Context = new OooContext();
+
 		}
 
 		public static OooPeriod GetById(int id)
 		{
-			return Periods[id];
+			return Periods[id] ?? HistoricalOooPeriods[id];
 		}
 
 		public static List<OooPeriod> GetByUserId(string userId)
@@ -156,37 +150,58 @@ namespace SayOOOnara
 			if (period.IsCurrentlyActive)
 			{
 				period.OooLength = DateTime.UtcNow - period.StartTime;
-				HistoricalOooPeriods.Add(period.Id, period);
+				Context.Periods.Update(period);
+			}
+			else
+			{
+				Periods.Remove(period.Id);
+				Context.Remove(period);
 			}
 
-			Periods.Remove(periodId);
-
-			ForceSave();
+			Context.SaveChanges();
 		}
 
-		public static List<OooPeriod> GetAllActive()
+		public static List<OooPeriod> GetAllForDay()
 		{
 			var activePeriods = new List<OooPeriod>();
-			Periods.Where(p => p.Value.IsCurrentlyActive).ForEach(p => activePeriods.Add(p.Value));
+			Periods.Where(p => p.Value.IsActiveToday).ForEach(p => activePeriods.Add(p.Value));
 			return activePeriods;
 		}
 
-		public static void AddOooPeriod(OooPeriod period)
+		public static async void AddOooPeriod(OooPeriod period)
 		{
+			Context.Add(period);
+			await Context.SaveChangesAsync();
 			Periods.Add(period.Id, period);
-			ForceSave();
 		}
 
-		public async Task LoadOooPeriods()
+		public async Task LoadAllOooPeriods()
 		{
-			var periodList = await _storageProvider.GetAll();
+			var periodList = Context.Periods
+				.Include(p => p.User)
+				.ToList();
+
 			periodList.ForEach(p =>
 			{
-				if (p.EndTime <= DateTime.UtcNow)
+				if (p.IsHistorical)
+				{
 					HistoricalOooPeriods.Add(p.Id, p);
+				}
 				else
+				{
 					Periods.Add(p.Id, p);
+				}
 			});
+
+		}
+
+		public async Task LoadCurrentAndFuturePeriods()
+		{
+			var periodList = Context.Periods.Where(p => !p.IsHistorical)
+				.Include(p => p.User)
+				.ToList();
+
+			periodList.ForEach(p => Periods.Add(p.Id, p));
 		}
 
 		public static List<OooPeriod> GetUpcomingOooPeriodsByUserId(string userId)
@@ -194,12 +209,28 @@ namespace SayOOOnara
 			return Periods.Values.Where(p => p.UserId == userId && p.StartTime > DateTime.UtcNow).ToList();
 		}
 
-		public static async Task ForceSave()
+
+		public static async Task Save(OooPeriod period)
 		{
-			var completeList = new List<OooPeriod>();
-			completeList.AddRange(Periods.Select(p => p.Value));
-			completeList.AddRange(HistoricalOooPeriods.Select(p => p.Value));
-			_storageProvider.SaveAll(completeList);
+			if (!Periods.ContainsKey(period.Id) && !HistoricalOooPeriods.ContainsKey(period.Id))
+			{
+				Context.Periods.Add(period);
+				if (period.IsHistorical)
+				{
+					HistoricalOooPeriods.Add(period.Id, period);
+				}
+				else
+				{
+					Periods.Add(period.Id, period);
+				}
+			}
+			else
+			{
+				Context.Periods.Update(period);
+			}
+
+			await Context.SaveChangesAsync();
 		}
+
 	}
 }

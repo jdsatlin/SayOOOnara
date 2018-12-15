@@ -9,8 +9,6 @@ namespace SayOOOnara
     {
 	    private static IOptions _options;
 		private static readonly List<MessageScheduler> ScheduledMessages = new List<MessageScheduler>();
-	    private static IStorage<User> _userStorage;
-	    private static IStorage<OooPeriod> _oooPeriodStorage;
 	    public static OooPeriods OooPeriodCollection;
 	    public static Users UserCollection;
 
@@ -20,12 +18,10 @@ namespace SayOOOnara
 	    public static async Task Main(string[] args)
 	    {
 		    _options = new OptionsFile();
-			_userStorage = new JsonStorage<User>();
-			_oooPeriodStorage = new JsonStorage<OooPeriod>();
-			OooPeriodCollection = new OooPeriods(_oooPeriodStorage);
-			UserCollection = new Users(_userStorage);
+			OooPeriodCollection = new OooPeriods();
+			UserCollection = new Users();
 
-		    await OooPeriodCollection.LoadOooPeriods();
+		    await OooPeriodCollection.LoadAllOooPeriods();
 		    await UserCollection.LoadUsers();
 			
 

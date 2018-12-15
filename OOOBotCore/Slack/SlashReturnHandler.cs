@@ -26,14 +26,14 @@ namespace SayOOOnara
 		protected override async Task ReadCommand()
 		{
 			await base.ReadCommand();
-			_user = Users.FindOrCreateUser(UserId);
+			_user = Users.Find(UserId);
 		}
 
 		protected async Task<object> CreateResponse()
 		{
 			var textBuilder = new StringBuilder();
 			textBuilder.AppendLine(_user.IsOoo ? "You have been marked back in office" : "You are not currently out of office.");
-			foreach (var period in OooPeriods.GetByUserId(_user.UserId).Where(p => p.IsCurrentlyActive))
+			foreach (var period in OooPeriods.GetByUserId(_user.Id).Where(p => p.IsCurrentlyActive))
 			{
 				period.EndNow();
 			}
@@ -46,7 +46,7 @@ namespace SayOOOnara
 			{
 				
 				var actions = new List<object>();
-				foreach (var period in OooPeriods.GetUpcomingOooPeriodsByUserId(_user.UserId))
+				foreach (var period in OooPeriods.GetUpcomingOooPeriodsByUserId(_user.Id))
 				{
 					actions.Add(await oooCancellationBuilder(period));
 				}

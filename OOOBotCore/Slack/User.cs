@@ -2,32 +2,37 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
+using SayOOOnara.Persistance;
 
 namespace SayOOOnara
 {
     public class User : IEquatable<User>
     {
-		[JsonIgnore]
-	    public bool IsOoo => OooPeriods.GetByUserId(UserId).Any(p => p.IsCurrentlyActive);
+	    public bool IsOoo => OooPeriods.GetByUserId(Id).Any(p => p.IsCurrentlyActive);
 
-	    [JsonIgnore]
-	    public bool HasUpcomingOooPeriods => OooPeriods.GetByUserId(UserId).Any(p => p.StartTime > DateTime.UtcNow);
-        public string UserId { get; }
+	    public bool HasUpcomingOooPeriods => OooPeriods.GetByUserId(Id).Any(p => p.StartTime > DateTime.UtcNow);
+        public string Id { get; set; }
         public string UserName { get; set; }
+
+	    private User()
+	    {
+
+	    }
 
 		/// <summary>
 		/// Do not access directly, access via Users.FindOrCreateUser
 		/// </summary>
-		public User(string userId)
+		public User(string id)
         {
-            UserId = userId;
+            Id = id;
         }
 
 
         public bool Equals(User other)
         {
-            if (UserId == other.UserId)
+            if (Id == other.Id)
             {
                 return true;
             }
@@ -39,21 +44,30 @@ namespace SayOOOnara
 	public class Users
 	{
 		private static readonly Dictionary<string, User> _users = new Dictionary<string, User>();
-		private static IStorage<User> _storageProvider;
+		private OooContext Context { get; set; }
 
-		public Users(IStorage<User> storageProvider)
+		public Users()
 		{
-		_storageProvider = storageProvider;
+			Context = new OooContext();
+			
 		}
 
-		public static User FindOrCreateUser(string userId)
+		public static User Find(string userId)
+		{
+			return _users[userId];
+		}
+
+		public static async Task<User> FindOrCreate(string userId, string userName)
 		{
 			User user;
 			if (!_users.ContainsKey(userId))
 			{
 				user = new User(userId);
-				_users.Add(user.UserId, user);
-				_storageProvider.SaveAll(_users.Select(u => u.Value).ToList());
+				user.UserName = userName;
+				var context = new OooContext();
+				context.Users.Add(user);
+				await context.SaveChangesAsync();
+				_users.Add(user.Id, user);
 			}
 			else
 			{
@@ -65,8 +79,8 @@ namespace SayOOOnara
 
 		public async Task LoadUsers()
 		{
-			var savedUsers = await _storageProvider.GetAll();
-			savedUsers.ForEach(u => _users.Add(u.UserId, u));
+			var savedUsers = await Context.Users.ToListAsync();
+			savedUsers.ForEach(u => _users.Add(u.Id, u));
 		}
 	}
 }

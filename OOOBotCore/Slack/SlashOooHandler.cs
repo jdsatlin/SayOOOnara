@@ -34,8 +34,7 @@ namespace SayOOOnara
 		{
 			await base.ReadCommand();
 
-			OooUser = Users.FindOrCreateUser(UserId);
-			OooUser.UserName = UserName;
+			OooUser = await Users.FindOrCreate(UserId, UserName);
 		}
 
 		protected async Task<object> CreateResponse()
