@@ -1,7 +1,5 @@
 ﻿<?xml version="1.0" encoding="UTF-8"?>
 <configuration>
-	<ClientID></ClientID>
-	<ClientSecret></ClientSecret>
 	<!-- Slack authorization token for the bot.
 	Can be found under OAuth & Permissions section of api.slack.com once bot has been added to your workspace-->
 	<AuthToken></AuthToken>

@@ -12,10 +12,6 @@ namespace SayOOOnara
 {
     public interface IOptions
     {
-        string GetClientId();
-
-        string GetClientSecret();
-
         string GetAuthToken();
 
 	    List<string> GetBroadcastDays();
@@ -52,8 +48,6 @@ namespace SayOOOnara
 
 	    private static string OptionsFileLocation => BaseDirectory + @"Options.Config";
 
-        private string _clientId;
-	    private string _clientSecret;
 	    private string _authToken;
 		private readonly List<string> _broadcastDays = new List<string>();
 		private readonly List<DateTime> _broadcastTimesUtc = new List<DateTime>();
@@ -72,8 +66,6 @@ namespace SayOOOnara
 		    dynamic optionxml = JsonConvert.DeserializeObject<ExpandoObject>(json);
 			var option = optionxml.configuration;
 
-		    _clientId = option.ClientID ?? string.Empty;
-			_clientSecret = option.ClientSecret ?? string.Empty;
 		    _authToken = option.AuthToken ?? string.Empty;
 			_broadcastChannel = option.BroadcastChannel ?? string.Empty;
 			_binding = option.Binding ?? "http://*:80";
@@ -111,9 +103,6 @@ namespace SayOOOnara
 		};
 
 
-	    public string GetClientId() => _clientId;
-
-	    public string GetClientSecret() => _clientSecret;
 
 	    public string GetAuthToken() => _authToken;
 

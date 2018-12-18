@@ -9,11 +9,12 @@ namespace SayOOOnara
 	{
 		private User _user;
 		private bool _foundPeriods;
+		private ISlackClient SlackClient;
 
-		public SlashReturnHandler(string postBody)
+		public SlashReturnHandler(string postBody, ISlackClient slackClient)
 		: base(postBody)
 		{
-
+			SlackClient = slackClient;
 		}
 
 
@@ -21,7 +22,14 @@ namespace SayOOOnara
 		{
 
 			await ReadCommand();
-			return await CreateResponse();
+			bool isOoo = _user.IsOoo;
+			var response = await CreateResponse();
+			if (isOoo)
+			{
+				await SlackClient.UpdateLastMessage();
+			}
+
+			return response;
 		}
 		protected override async Task ReadCommand()
 		{

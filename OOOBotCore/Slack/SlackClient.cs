@@ -34,10 +34,10 @@ namespace SayOOOnara
 	}
 	public class SlackClient : HttpClient, ISlackClient
 	{
-	    private readonly OAuthClient _oAuthClient;
-		private string _authToken => _oAuthClient.AuthToken;
+		private string _authToken;
+		private string AuthToken => _authToken ?? (_authToken = _options.GetAuthToken());
 		private const string PostMessageUrl = "https://slack.com/api/chat.postMessage";
-		private const string updateMessageUrl = "https://slack.com/api/chat.update";
+		private const string UpdateMessageUrl = "https://slack.com/api/chat.update";
 		private static IOptions _options;
 		private static string LastMessageIdentifier { get; set; }
 		private static string MessageChannel { get; set; }
@@ -46,9 +46,8 @@ namespace SayOOOnara
 
 		public SlackClient()
 	    {
-	        _oAuthClient = new OAuthClient();
-			DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _authToken);
-			_options = new OptionsFile();
+		    _options = new OptionsFile();
+			DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", AuthToken);
 	    }
 
 		private enum MimeType
@@ -110,7 +109,7 @@ namespace SayOOOnara
 			var requestBody = new StringContent(JsonConvert.SerializeObject(json));
 			requestBody.Headers.ContentType = MediaTypeHeaderValue.Parse(getMediaType(MimeType.Json));
 
-			var response = await PostAsync(updateMessageUrl, requestBody);
+			var response = await PostAsync(UpdateMessageUrl, requestBody);
 
 			var responseBody = await response.Content.ReadAsStringAsync();
 
@@ -120,19 +119,22 @@ namespace SayOOOnara
 
 		private async Task<string> BuildBroadcastMessage()
 		{
-			var dailyOooPeriods = OooPeriods.GetAllForDay();
-			bool usersAreOoo = dailyOooPeriods.Count > 0;
+			var now = DateTime.Now;
+			var dailyOooPeriods = OooPeriods.GetAllForDay()
+				.Where(p =>
+				!(p.EndTime.ToLocalTime() == new DateTime(now.Year, now.Month, now.Day, 0, 0, 0))).ToList(); ;
+			bool thereArePeriodsToPostAbout = dailyOooPeriods.Count > 0;
 			var baseMessage =
 				$"Today is {DateTime.Now.ToShortDateString()} \n"
-				+ $"{(usersAreOoo ? "The following users are out of office today:\n" : "No one is out of office today.")}";
+				+ $"{(thereArePeriodsToPostAbout ? "The following users are out of office today:\n" : "No one is out of office today.")}";
 			StringBuilder sb = new StringBuilder();
 			string oooUserMessages = string.Empty;
-			if (usersAreOoo)
+			if (thereArePeriodsToPostAbout)
 			{
-				for (var i = 0; i <dailyOooPeriods.Count; i++)
+				for (var i = 0; i < dailyOooPeriods.Count; i++)
 				{
 					var period = dailyOooPeriods[i];
-					var userName = Users.Find(period.UserId).UserName;
+					var userName = period.User.UserName;
 					var startTime = period.StartTime.ToLocalTime();
 					var startTimeText = "From: "
 					                    + (startTime.Hour == 0
@@ -143,7 +145,9 @@ namespace SayOOOnara
 					                  + (endTime.Hour == 0
 						                  ? endTime.ToShortDateString()
 						                  : endTime.ToString("g", CultureInfo.CurrentCulture));
-					var userMessageText = $"Their message is: {period.Message}";
+					var userMessageText = string.IsNullOrWhiteSpace(period.Message)
+						? string.Empty
+						: $"Their message is: {period.Message}";
 					if (i < dailyOooPeriods.Count - 1)
 					{
 						sb.AppendLine(userName + " " + startTimeText + " " + endTimeText + " " + userMessageText);

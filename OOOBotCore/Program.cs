@@ -18,10 +18,9 @@ namespace SayOOOnara
 	    public static async Task Main(string[] args)
 	    {
 		    _options = new OptionsFile();
-			OooPeriodCollection = new OooPeriods();
+			OooPeriodCollection = await OooPeriods.Create();
 			UserCollection = new Users();
 
-		    await OooPeriodCollection.LoadAllOooPeriods();
 		    await UserCollection.LoadUsers();
 			
 
