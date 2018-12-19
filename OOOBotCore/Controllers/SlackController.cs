@@ -66,7 +66,7 @@ namespace SayOOOnara.Controllers
 				body = reader.ReadToEnd();
 			}
 
-		    var handler = new InteractiveMessageDispatcher(body);
+		    var handler = new InteractiveMessageDispatcher(body, SlackClient);
 		    var result = Json(handler.Dispatch().Result);
 			
 		    result.StatusCode = (int?) HttpStatusCode.OK;

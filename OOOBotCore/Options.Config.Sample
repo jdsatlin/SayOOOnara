@@ -9,7 +9,9 @@
 	<BroadcastTimes></BroadcastTimes>
 	<!-- List of Days to broadcast, in comma seperated list (e.g. Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday)-->
 	<BroadcastDays></BroadcastDays>
-	<!--Web binding for HTTP server. Accepts a protocol, a hostname and a port in the format "http://127.0.0.1:888" Hostname of * will bind on every available IP, and a blank port will bind on 80 -->
-	<Binding></Binding>
+	<!--Web binding is set in appsettings.json. 
+	It accepts a hostname and a port in the format "http://127.0.0.1:888" 
+	Hostname of * will bind on every available IP, and a blank port will bind on 80
+	Please see appsettings.json.sample for example http and https setup.-->
 </configuration>
 

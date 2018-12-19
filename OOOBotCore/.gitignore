@@ -239,4 +239,4 @@ _Pvt_Extensions
 .fake/
 
 # sqlite DB
-.db
+*.db

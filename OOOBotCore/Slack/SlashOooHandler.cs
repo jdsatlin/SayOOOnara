@@ -12,6 +12,7 @@ namespace SayOOOnara
 		private OooPeriod UserOooPeriod { get; set; }
 		private const int SecondsInADay = 86400;
 		private ISlackClient SlackClient { get; }
+		private bool _difficultyParsing;
 
 		public SlashOooHandler(string postBody, ISlackClient slackClient)
 		: base(postBody)
@@ -23,7 +24,7 @@ namespace SayOOOnara
 		{
 			await ReadCommand();
 			await InterpretCommandText(CommandText);
-			if (UserOooPeriod.StartTime.ToLocalTime().Date == DateTime.Now.Date)
+			if (!_difficultyParsing && UserOooPeriod.StartTime.ToLocalTime().Date == DateTime.Now.Date)
 			{
 				await SlackClient.UpdateLastMessage();
 			}
@@ -39,7 +40,10 @@ namespace SayOOOnara
 
 		protected async Task<object> CreateResponse()
 		{
-			return new {text = UserOooPeriod.OooPeriodSummary()};
+			return new {text = _difficultyParsing 
+				? "Sorry, I had some trouble understanding that. Please try again using commas to separate your beginning, end, and message"
+			    + " or just type /ooo with no parameters to mark yourself out now and back in tomorrow"
+				: UserOooPeriod.OooPeriodSummary()};
 		}
 
 		private async Task InterpretCommandText(string commandText)
@@ -62,9 +66,16 @@ namespace SayOOOnara
 
 				case 1:
 					var startTimeRangeCheck = parser.Parse(commands[0]);
-					if (startTimeRangeCheck.Start != null
-					    && startTimeRangeCheck.End != null 
-					    && startTimeRangeCheck.Width > SecondsInADay)
+
+					if (startTimeRangeCheck == null)
+					{
+						_difficultyParsing = true;
+						return;
+					}
+
+					if (startTimeRangeCheck?.Start != null
+					    && startTimeRangeCheck?.End != null 
+					    && startTimeRangeCheck?.Width > SecondsInADay)
 					{
 						UserOooPeriod = new OooPeriod(UserId, 
 							(DateTime) startTimeRangeCheck.Start, (DateTime) startTimeRangeCheck.End);

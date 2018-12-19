@@ -20,9 +20,6 @@ namespace SayOOOnara
 
 	    string GetBroadcastChannel();
 
-	    string GetBinding();
-
-
     }
 	public class OptionsFile : IOptions
 	{
@@ -52,7 +49,6 @@ namespace SayOOOnara
 		private readonly List<string> _broadcastDays = new List<string>();
 		private readonly List<DateTime> _broadcastTimesUtc = new List<DateTime>();
 		private string _broadcastChannel;
-		private string _binding;
 
 		public void LoadOptions()
 		{
@@ -68,7 +64,6 @@ namespace SayOOOnara
 
 		    _authToken = option.AuthToken ?? string.Empty;
 			_broadcastChannel = option.BroadcastChannel ?? string.Empty;
-			_binding = option.Binding ?? "http://*:80";
 
 			string broadcastDays = option.BroadcastDays;
 			_broadcastDays.AddRange(broadcastDays.ToLower().Replace(" ", "").Split(',')
@@ -112,7 +107,6 @@ namespace SayOOOnara
 
 		public string GetBroadcastChannel() => _broadcastChannel;
 
-		public string GetBinding() => _binding;
 	}
 
 }

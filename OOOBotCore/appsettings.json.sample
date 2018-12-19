@@ -1,0 +1,23 @@
+{
+	"Logging": {
+		"LogLevel": {
+			"Default": "Warning"
+		}
+	},
+	"Kestrel": {
+		"EndPoints": {
+			"Http": {
+				"Url": "http://localhost:5000"
+			},
+
+			"Https": {
+				"Url": "https://*:5004",
+				"Certificate": {
+					"Path": "<path to .pfx file>",
+					"Password": "<certificate password>"
+				}
+			}
+		}
+
+	}
+}

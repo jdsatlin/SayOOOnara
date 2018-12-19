@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Chronic.Core.System;
 
 namespace SayOOOnara
 {
@@ -22,12 +23,7 @@ namespace SayOOOnara
 		{
 
 			await ReadCommand();
-			bool isOoo = _user.IsOoo;
 			var response = await CreateResponse();
-			if (isOoo)
-			{
-				await SlackClient.UpdateLastMessage();
-			}
 
 			return response;
 		}
@@ -40,24 +36,25 @@ namespace SayOOOnara
 		protected async Task<object> CreateResponse()
 		{
 			var textBuilder = new StringBuilder();
-			textBuilder.AppendLine(_user.IsOoo ? "You have been marked back in office" : "You are not currently out of office.");
-			foreach (var period in OooPeriods.GetByUserId(_user.Id).Where(p => p.IsCurrentlyActive))
-			{
-				period.EndNow();
-			}
-			var upcomingOoo = _user.HasUpcomingOooPeriods;
-			textBuilder.AppendLine(upcomingOoo
-				? "You have the following upcoming out of office periods:"
-				: "You do not have any upcoming periods that can be cancelled.");
+			textBuilder.AppendLine(_user.IsOoo ? "You are currently out of office" : "You are not currently out of office.");
+			var currentOooPeriods = OooPeriods.GetByUserId(_user.Id).Where(p => p.IsCurrentlyActive).ToList();
+		
+			var cancellablePeriods = _user.HasUpcomingOooPeriods || currentOooPeriods.Any();
+			textBuilder.AppendLine(cancellablePeriods
+				? "You have the following current & upcoming out of office periods:"
+				: "You do not have any current or upcoming periods that can be cancelled.");
 			var attachments = new List<object>();
-			if (upcomingOoo)
+			if (cancellablePeriods)
 			{
 				
 				var actions = new List<object>();
+				currentOooPeriods.ForEach(async p => actions.Add(await oooCancellationBuilder(p)));
+
 				foreach (var period in OooPeriods.GetUpcomingOooPeriodsByUserId(_user.Id))
 				{
 					actions.Add(await oooCancellationBuilder(period));
 				}
+				
 
 				var attachmentBody = new
 				{
