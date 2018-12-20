@@ -16,6 +16,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Content Remove="appsettings.Development.json" />
     <Content Remove="Options.Config" />
   </ItemGroup>
 
@@ -32,10 +33,20 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Remove="appsettings.json.sample" />
     <None Remove="Options.Config.Sample" />
   </ItemGroup>
 
   <ItemGroup>
+    <ApplicationDefinition Include="appsettings.Development.json">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </ApplicationDefinition>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="appsettings.json.sample">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Content Include="Options.Config.Sample">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>

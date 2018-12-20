@@ -16,6 +16,16 @@
 					"Path": "<path to .pfx file>",
 					"Password": "<certificate password>"
 				}
+			},
+
+			"HttpsCertStore": {
+				"Url": "https://localhost:5002",
+				"Certificate": {
+					"Subject": "<subject; required>",
+					"Store": "<certificate store; defaults to My>",
+					"Location": "<location; defaults to CurrentUser>",
+					"AllowInvalid": "<true or false; defaults to false>"
+				}
 			}
 		}
 

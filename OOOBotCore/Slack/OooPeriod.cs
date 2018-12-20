@@ -64,10 +64,11 @@ namespace SayOOOnara
 			UserId = userId;
 			var utcStart = startTime.ToUniversalTime();
 			StartTime = utcStart > DateTime.UtcNow ? utcStart : DateTime.UtcNow;
-			var utcEnd = endTime.ToUniversalTime();
-			var oooSpan = utcEnd - StartTime;
 
-			OooLength = oooSpan;
+			var utcEnd = endTime.ToUniversalTime();
+			utcEnd = utcEnd <= utcStart ? DateTime.MaxValue : utcEnd;
+
+			OooLength = utcEnd - StartTime;
 			Message = message;
 
 			OooPeriods.AddOooPeriod(this);
