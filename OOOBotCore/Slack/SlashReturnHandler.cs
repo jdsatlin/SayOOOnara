@@ -10,12 +10,10 @@ namespace SayOOOnara
 	{
 		private User _user;
 		private bool _foundPeriods;
-		private ISlackClient SlackClient;
 
-		public SlashReturnHandler(string postBody, ISlackClient slackClient)
+		public SlashReturnHandler(string postBody)
 		: base(postBody)
 		{
-			SlackClient = slackClient;
 		}
 
 
@@ -48,11 +46,11 @@ namespace SayOOOnara
 			{
 				
 				var actions = new List<object>();
-				currentOooPeriods.ForEach(async p => actions.Add(await oooCancellationBuilder(p)));
+				currentOooPeriods.ForEach(async p => actions.Add(await OooCancellationBuilder(p)));
 
 				foreach (var period in OooPeriods.GetUpcomingOooPeriodsByUserId(_user.Id))
 				{
-					actions.Add(await oooCancellationBuilder(period));
+					actions.Add(await OooCancellationBuilder(period));
 				}
 				
 
@@ -75,7 +73,7 @@ namespace SayOOOnara
 
 		}
 
-		protected async Task<object> oooCancellationBuilder(OooPeriod period)
+		protected async Task<object> OooCancellationBuilder(OooPeriod period)
 		{
 			var button = new
 			{
@@ -89,11 +87,5 @@ namespace SayOOOnara
 			return button;
 		}
 
-		protected async Task DeletePeriod(int periodId)
-		{
-			OooPeriods.RemoveOooPeriodByPeriodId(periodId);
-		}
-
-	
 	}
 }

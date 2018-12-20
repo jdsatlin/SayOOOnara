@@ -46,7 +46,7 @@ namespace SayOOOnara.Controllers
 				body = reader.ReadToEnd();
 			}
 
-			var handler = new SlashReturnHandler(body, SlackClient);
+			var handler = new SlashReturnHandler(body);
 			var result = Content(JsonConvert.SerializeObject(handler.HandleRequest().Result), "application/json");
 			result.StatusCode = (int?) HttpStatusCode.OK;
 		

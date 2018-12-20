@@ -15,7 +15,6 @@ namespace SayOOOnara
 	{
 		public int Id { get; set; }
 
-		private DateTime _startTime;
 		public DateTime StartTime { get; set; }
 		
 		public bool IsCurrentlyActive => StartTime <= DateTime.UtcNow && EndTime > DateTime.UtcNow;
