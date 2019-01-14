@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Xml;
 using Chronic.Core.System;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
@@ -11,7 +12,7 @@ using SayOOOnara.Persistance;
 
 namespace SayOOOnara
 {
-	public class OooPeriod
+	public class OooPeriod : IEquatable<OooPeriod>
 	{
 		public int Id { get; set; }
 
@@ -94,7 +95,42 @@ namespace SayOOOnara
 			await OooPeriods.Save(this);
 		}
 
+		public static bool PeriodsOverlap(OooPeriod periodOne, OooPeriod periodTwo)
+		{
+			return periodOne.StartTime >= periodTwo.StartTime && periodOne.StartTime <= periodTwo.EndTime ||
+			       periodTwo.StartTime >= periodOne.StartTime && periodTwo.StartTime <= periodOne.EndTime;
+		}
 
+
+		public bool Equals(OooPeriod other)
+		{
+			if (ReferenceEquals(null, other)) return false;
+			if (ReferenceEquals(this, other)) return true;
+			return Id == other.Id;
+		}
+
+		public override bool Equals(object obj)
+		{
+			if (ReferenceEquals(null, obj)) return false;
+			if (ReferenceEquals(this, obj)) return true;
+			if (obj.GetType() != this.GetType()) return false;
+			return Equals((OooPeriod) obj);
+		}
+
+		public override int GetHashCode()
+		{
+			return Id;
+		}
+
+		public static bool operator ==(OooPeriod left, OooPeriod right)
+		{
+			return Equals(left, right);
+		}
+
+		public static bool operator !=(OooPeriod left, OooPeriod right)
+		{
+			return !Equals(left, right);
+		}
 	}
 
 	public class OooPeriods

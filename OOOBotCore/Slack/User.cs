@@ -54,7 +54,8 @@ namespace SayOOOnara
 
 		public static User Find(string userId)
 		{
-			return _users[userId];
+			_users.TryGetValue(userId, out var user);
+			return user;
 		}
 
 		public static async Task<User> FindOrCreate(string userId, string userName)

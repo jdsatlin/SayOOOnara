@@ -1,11 +1,13 @@
 using System;
+using System.IO;
 using System.Timers;
+using SayOOOnara.Slack;
 
 namespace SayOOOnara
 {
 	public class MessageScheduler
 	{
-		private readonly SlackClient _client;
+		private readonly ISlackClient _client;
 		private Timer Timer;
 		private DateTime _timeOfDay;
 		private DateTime TimeOfDay
@@ -23,10 +25,11 @@ namespace SayOOOnara
 
 		private double MillisecondsAway => (TimeOfDay - DateTime.Now).TotalMilliseconds;
 
-		public MessageScheduler(SlackClient client, DateTime timeOfDay)
+		public MessageScheduler(ISlackClient client, DateTime timeOfDay)
 		{
 			_client = client;
 			TimeOfDay = UpdateToNextOccurence(timeOfDay);
+			Debug.AddToDebugLog($"Doing initial timer create for {DateTime.Now + new TimeSpan(Convert.ToInt64(MillisecondsAway * TimeSpan.TicksPerMillisecond))}");
 			Timer =  new Timer(MillisecondsAway);
 			Timer.Elapsed += TimerOnElapsed;
 			Timer.AutoReset = true;
@@ -34,12 +37,14 @@ namespace SayOOOnara
 
 		}
 
-		private void TimerOnElapsed(object sender, ElapsedEventArgs e)
+		private async void TimerOnElapsed(object sender, ElapsedEventArgs e)
 		{
 			var poster = _client;
-			poster.PostBroadcast();
-			TimeOfDay = UpdateToNextOccurence(TimeOfDay);
+			await poster.PostBroadcast();
+			Debug.AddToDebugLog("Timer elapsed, broadcast posted.");
+			System.Threading.Thread.Sleep(1000);
 			Timer.Interval = MillisecondsAway;
+			Debug.AddToDebugLog($"Timer interval set to reoccur at {DateTime.Now + new TimeSpan(Convert.ToInt64(MillisecondsAway * TimeSpan.TicksPerMillisecond))}");
 		}
 
 		private static DateTime UpdateToNextOccurence(DateTime input)
@@ -49,18 +54,22 @@ namespace SayOOOnara
 				return input;
 			}
 
-			var gap = DetermineNextValidDayOfWeek(DateTime.Now.Date) - input.Date;
-			return input.AddDays(gap.Days + 1);
+			var gap = DetermineNextValidDayOfWeek(DateTime.Now.Date.AddDays(1)) - input.Date;
+			Debug.AddToDebugLog($"Set next timer occurence for {gap.Days} days");
+			return input.AddDays(gap.Days);
 		}
 
 		private static DateTime DetermineNextValidDayOfWeek(DateTime input)
 		{
+			DateTime  inputOverride = DateTime.MinValue;
 			if (!Options.GetBroadcastDays().Contains(input.DayOfWeek.ToString().ToLower()))
 			{
-				DetermineNextValidDayOfWeek(input.AddDays(1));
+				inputOverride = DetermineNextValidDayOfWeek(input.AddDays(1));
 			}
 
-			return input;
+
+			Debug.AddToDebugLog($"Determined next valid day of week is {(inputOverride != DateTime.MinValue ? inputOverride.DayOfWeek : input.DayOfWeek)}");
+			return inputOverride != DateTime.MinValue ? inputOverride : input;
 		}
 
 

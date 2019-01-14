@@ -1,25 +1,11 @@
 using System;
-using System.Collections.Generic;
 using System.Dynamic;
 using System.Globalization;
-using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
-using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
-using System.Net.Security;
-using System.Net.Sockets;
-using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
-using System.Web;
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Internal;
-using Microsoft.AspNetCore.Razor.Language.Intermediate;
-using Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Http;
-using Microsoft.Rest;
 using Newtonsoft.Json;
 
 namespace SayOOOnara
@@ -29,6 +15,7 @@ namespace SayOOOnara
 	{
 		Task DeletePeriod(int periodId, Uri responseUri);
 		Task UpdateLastMessage();
+		Task PostBroadcast();
 
 
 	}
@@ -142,9 +129,10 @@ namespace SayOOOnara
 						                    : startTime.ToString("g", CultureInfo.CurrentCulture));
 					var endTime = period.EndTime.ToLocalTime();
 					var endTimeText = "To: "
-					                  + (endTime.Hour == 0
+					                  +   (endTime.Year == DateTime.MaxValue.Year ? "With no return date set" 
+						                  : (endTime.Hour == 0
 						                  ? endTime.ToShortDateString()
-						                  : endTime.ToString("g", CultureInfo.CurrentCulture));
+						                  : endTime.ToString("g", CultureInfo.CurrentCulture)));
 					var userMessageText = string.IsNullOrWhiteSpace(period.Message)
 						? string.Empty
 						: $"Their message is: {period.Message}";

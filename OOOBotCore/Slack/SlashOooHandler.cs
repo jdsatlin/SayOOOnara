@@ -44,11 +44,21 @@ namespace SayOOOnara
 
 		protected async Task<object> CreateResponse()
 		{
-			return new {text = _difficultyParsing 
-				? "Sorry, I had some trouble understanding that. Please try again and be specific, using commas to separate your start, return, and message. \n"
-			    + "Or, just type /ooo with no parameters to mark yourself out now and back in tomorrow. \n"
-				+ "Example: /ooo today at 3pm, next friday, On vacation with limited access to email."
-				: UserOooPeriod.OooPeriodSummary()};
+			var overlappingPeriods = OooPeriods.GetByUserId(OooUser.Id).Where(p => p != UserOooPeriod).ToList().Where(p => OooPeriod.PeriodsOverlap(p, UserOooPeriod));
+
+			var message = _difficultyParsing
+					? "Sorry, I had some trouble understanding that. Please try again and be specific, using commas to separate your start, return, and message. \n"
+					  + "Or, just type /ooo with no parameters to mark yourself out now and back in tomorrow. \n"
+					  + "Example: /ooo today at 3pm, next friday, On vacation with limited access to email."
+					: UserOooPeriod.OooPeriodSummary();
+					message += overlappingPeriods.Any() ?
+						"\nAs a heads up, this period overlaps with an another out of office period you already created. \n"
+						+ "You may want to use /oooreturn to remove any unecessary or accidental out of office periods."
+						: string.Empty;
+			return new
+			{
+				text = message
+			};
 		}
 
 		private async Task InterpretCommandText(string commandText)

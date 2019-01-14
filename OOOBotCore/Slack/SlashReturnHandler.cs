@@ -33,37 +33,49 @@ namespace SayOOOnara
 
 		protected async Task<object> CreateResponse()
 		{
+			
 			var textBuilder = new StringBuilder();
-			textBuilder.AppendLine(_user.IsOoo ? "You are currently out of office" : "You are not currently out of office.");
-			var currentOooPeriods = OooPeriods.GetByUserId(_user.Id).Where(p => p.IsCurrentlyActive).ToList();
-		
-			var cancellablePeriods = _user.HasUpcomingOooPeriods || currentOooPeriods.Any();
-			textBuilder.AppendLine(cancellablePeriods
-				? "You have the following current & upcoming out of office periods:"
-				: "You do not have any current or upcoming periods that can be cancelled.");
 			var attachments = new List<object>();
-			if (cancellablePeriods)
+
+			if (_user != null)
 			{
-				
-				var actions = new List<object>();
-				currentOooPeriods.ForEach(async p => actions.Add(await OooCancellationBuilder(p)));
+				textBuilder.AppendLine(_user.IsOoo ? "You are currently out of office" : "You are not currently out of office.");
+				var currentOooPeriods = OooPeriods.GetByUserId(_user.Id).Where(p => p.IsCurrentlyActive).ToList();
 
-				foreach (var period in OooPeriods.GetUpcomingOooPeriodsByUserId(_user.Id))
+				var cancellablePeriods = _user.HasUpcomingOooPeriods || currentOooPeriods.Any();
+				textBuilder.AppendLine(cancellablePeriods
+					? "You have the following current & upcoming out of office periods:"
+					: "You do not have any current or upcoming periods that can be cancelled.");
+				if (cancellablePeriods)
 				{
-					actions.Add(await OooCancellationBuilder(period));
+
+					var actions = new List<object>();
+					currentOooPeriods.ForEach(async p => actions.Add(await OooCancellationBuilder(p)));
+
+					foreach (var period in OooPeriods.GetUpcomingOooPeriodsByUserId(_user.Id))
+					{
+						actions.Add(await OooCancellationBuilder(period));
+					}
+
+
+					var attachmentBody = new
+					{
+						text = "Select a period to cancel",
+						fallback = "Sorry, something went wrong",
+						callback_id = "cancelperiod",
+						actions = actions
+					};
+					attachments.Add(attachmentBody);
+
 				}
-				
-
-				var attachmentBody = new
-				{
-					text = "Select a period to cancel",
-					fallback = "Sorry, something went wrong",
-					callback_id = "cancelperiod",
-					actions = actions
-			};
-				attachments.Add(attachmentBody);
 
 			}
+			else
+			{
+				textBuilder.AppendLine("You are not currently out of office.");
+				textBuilder.AppendLine("You do not have any current or upcoming periods that can be cancelled.");
+			}
+
 
 			return new
 			{

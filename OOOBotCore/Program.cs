@@ -5,6 +5,7 @@ using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 using SayOOOnara.Persistance;
+using SayOOOnara.Slack;
 
 namespace SayOOOnara
 {
@@ -17,6 +18,7 @@ namespace SayOOOnara
 
 	    public static async Task Main(string[] args)
 	    {
+			Debug.AddToDebugLog("Started up SayOOOnara");
 
 		    var context = new OooContext();
 
@@ -48,6 +50,8 @@ namespace SayOOOnara
 			    foreach (var dailypost in _options.GetBroadcastTimes())
 			    {
 				    var scheduledMessage = new MessageScheduler(client, dailypost);
+					Debug.AddToDebugLog("Created a scheduled message broadcast on initial startup.");
+
 				    ScheduledMessages.Add(scheduledMessage);
 			    }
 
