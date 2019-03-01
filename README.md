@@ -21,6 +21,6 @@ The options.config.sample and appsettings.json.sample files included in the repo
 SayOOONara was built largely as a learning project, to gain familiarity with .NET Core and Kestrel, while also solving a real problem I encounter day-to-day. 
 It runs on Kestrel, and is intended to be distributed as a standalone application. Storage is backed by a lightweight SQLite database, accessed via EntityFramework which gets automatically generated on first run to make updating as easy as possible.
 The bulk of the business logic lies in the the various /OOOBotCore/Slack/ folder, in particular the most detailed logic is in the slash command handlers ([SlashOooHandler.cs](../master/OOOBotCore/Slack/SlashOooHandler.cs) & [SlashReturnHandler.cs](../master/OOOBotCore/Slack/SlashReturnHandler.cs)) with natural language date/time parsing and support for interactive buttons on Slack.  
-These classes are backed by relatively simple data classes for the out of office period ([OooPeriod.cs](../master/OOOBotCore/Slack/OooPeriod.cs) and User ([User.cs](../master/OOOBotCore/Slack/User.cs))
+These classes are backed by relatively simple data classes for the out of office period ([OooPeriod.cs](../master/OOOBotCore/Slack/OooPeriod.cs)) and user ([User.cs](../master/OOOBotCore/Slack/User.cs))
  
 
