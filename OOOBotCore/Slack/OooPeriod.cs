@@ -26,7 +26,7 @@ namespace SayOOOnara
 			private set
 			{ 
 				//unfortunate hack to allow saving in entity framework
-            }
+            		}
 		}
 
 		public TimeSpan OooLength { get; set; }
